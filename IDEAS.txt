@@ -1,12 +1,12 @@
-- Ask AI for further dev ideas and implement the best
+- Ask AI for further dev ideas and implement the best.
 - Keep the app simple. One view only, it should guide the user to correct usage.
 - Add optional lower HR bound.
 - Add icon to app.
-- Add zone options (Zone 1, Zone 2, Zone 3, Zone 4, Zone 5 audio notes).
-- Read current HR out loud?
-- Audio warning when connection lost
-- Track km and notify when goal is met or just notify after each km run?
-- Clean up repo tree, update README
+- Remove audio sound choice.
+- Audio warning when connection lost.
+- Add optional km tracker and notify after each km run.
+- Add history tab on swipe right. Include delete functionality. UI should make clear there are 2 tabs with e.g. dot for each tab on top or bottom of UI.
+- Clean up repo structure, update gitignore and README.
 - Ensure HR data gets updated as fast and frequently as possible both to audio and UI.
-- When repo is in good condition, make it public on Github
-- Publish on Google Play
+- When repo is in good condition, make it public on Github.
+- Publish on Google Play. 
