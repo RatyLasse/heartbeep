@@ -14,14 +14,14 @@ enum class AlarmSoundStyle(
         displayName = "Bright",
         toneCode = ToneGenerator.TONE_PROP_BEEP,
         durationMs = 120,
-        volume = 85,
+        volume = 100,
     ),
     Pulse(
         storageValue = "pulse",
         displayName = "Pulse",
         toneCode = ToneGenerator.TONE_CDMA_PIP,
         durationMs = 110,
-        volume = 90,
+        volume = 100,
     ),
     ;
 

@@ -1,11 +1,42 @@
 package com.x.hrbeep.monitoring
 
+import android.content.Context
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.ToneGenerator
+import android.os.Build
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
-class AlarmPlayer {
+class AlarmPlayer(
+    context: Context,
+) {
+    private val audioManager = context.getSystemService(AudioManager::class.java)
     private val generators = mutableMapOf<AlarmSoundStyle, ToneGenerator>()
     private val generatorVolumes = mutableMapOf<AlarmSoundStyle, Int>()
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var abandonFocusJob: Job? = null
+
+    private val audioFocusRequest: AudioFocusRequest? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                .setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build()
+                )
+                .setAcceptsDelayedFocusGain(false)
+                .setWillPauseWhenDucked(false)
+                .build()
+        } else {
+            null
+        }
 
     @Synchronized
     fun beep(style: AlarmSoundStyle, intensity: Int) {
@@ -13,6 +44,7 @@ class AlarmPlayer {
         val effectiveVolume = (style.volume * (clampedIntensity / 100f))
             .toInt()
             .coerceIn(0, 100)
+        requestTransientAudioFocus(style.durationMs)
 
         val generator = generators[style]
         val activeGenerator = if (generator != null && generatorVolumes[style] == effectiveVolume) {
@@ -29,8 +61,38 @@ class AlarmPlayer {
 
     @Synchronized
     fun release() {
+        abandonFocusJob?.cancel()
+        abandonAudioFocus()
         generators.values.forEach(ToneGenerator::release)
         generators.clear()
         generatorVolumes.clear()
+    }
+
+    private fun requestTransientAudioFocus(durationMs: Int) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioFocusRequest?.let(audioManager::requestAudioFocus)
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager.requestAudioFocus(
+                null,
+                AudioManager.STREAM_MUSIC,
+                AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK,
+            )
+        }
+
+        abandonFocusJob?.cancel()
+        abandonFocusJob = scope.launch {
+            delay(durationMs.toLong() + 150L)
+            abandonAudioFocus()
+        }
+    }
+
+    private fun abandonAudioFocus() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioFocusRequest?.let(audioManager::abandonAudioFocusRequest)
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager.abandonAudioFocus(null)
+        }
     }
 }

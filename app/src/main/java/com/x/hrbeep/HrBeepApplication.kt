@@ -15,7 +15,7 @@ class HrBeepApplication : Application() {
         appContainer = AppContainer(
             thresholdRepository = ThresholdRepository(this),
             bleHeartRateRepository = BleHeartRateRepository(this),
-            alarmPlayer = AlarmPlayer(),
+            alarmPlayer = AlarmPlayer(this),
             monitoringController = MonitoringController(),
         )
     }
