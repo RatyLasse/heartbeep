@@ -178,7 +178,15 @@ class MonitoringService : Service() {
 
         monitoringController.update {
             if (errorMessage == null) {
-                MonitoringSessionState()
+                it.copy(
+                    isMonitoring = false,
+                    connectionState = ConnectionState.Idle,
+                    currentHr = null,
+                    threshold = null,
+                    deviceName = null,
+                    deviceAddress = null,
+                    errorMessage = null,
+                )
             } else {
                 it.copy(
                     isMonitoring = false,
