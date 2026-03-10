@@ -1,1 +1,0 @@
-- Consider replacing the fixed alert tone with a beep cadence that matches the current heart rate when above the threshold.
