@@ -16,6 +16,10 @@ import kotlinx.coroutines.launch
 class AlarmPlayer(
     context: Context,
 ) {
+    private companion object {
+        const val EXTRA_DUCK_MS = 350L
+    }
+
     private val audioManager = context.getSystemService(AudioManager::class.java)
     private val generators = mutableMapOf<AlarmSoundStyle, ToneGenerator>()
     private val generatorVolumes = mutableMapOf<AlarmSoundStyle, Int>()
@@ -82,7 +86,7 @@ class AlarmPlayer(
 
         abandonFocusJob?.cancel()
         abandonFocusJob = scope.launch {
-            delay(durationMs.toLong() + 150L)
+            delay(durationMs.toLong() + EXTRA_DUCK_MS)
             abandonAudioFocus()
         }
     }

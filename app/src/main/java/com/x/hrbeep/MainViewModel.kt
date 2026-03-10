@@ -100,7 +100,7 @@ class MainViewModel(
         val filtered = input.filter(Char::isDigit).take(3)
         _uiState.update { state -> state.copy(thresholdInput = filtered) }
 
-        filtered.toIntOrNull()?.takeIf { it in 40..240 }?.let { parsed ->
+        filtered.toIntOrNull()?.takeIf { it in 20..300 }?.let { parsed ->
             viewModelScope.launch {
                 thresholdRepository.saveThreshold(parsed)
             }
@@ -210,8 +210,8 @@ class MainViewModel(
                 _uiState.update { state -> state.copy(message = "Turn Bluetooth on before monitoring.") }
             }
 
-            threshold == null || threshold !in 40..240 -> {
-                _uiState.update { state -> state.copy(message = "Set a heart-rate limit between 40 and 240 bpm.") }
+            threshold == null || threshold !in 20..300 -> {
+                _uiState.update { state -> state.copy(message = "Set a heart-rate limit between 20 and 300 bpm.") }
             }
 
             selectedDevice == null -> {

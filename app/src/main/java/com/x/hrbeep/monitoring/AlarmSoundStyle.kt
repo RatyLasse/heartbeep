@@ -26,7 +26,7 @@ enum class AlarmSoundStyle(
     ;
 
     companion object {
-        val default: AlarmSoundStyle = Bright
+        val default: AlarmSoundStyle = Pulse
 
         fun fromStorageValue(value: String?): AlarmSoundStyle {
             return entries.firstOrNull { it.storageValue == value } ?: default
