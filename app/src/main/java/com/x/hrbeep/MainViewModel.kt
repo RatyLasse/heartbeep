@@ -51,6 +51,7 @@ class MainViewModel(
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
     private var scanJob: Job? = null
+    private var autoScanTriggered = false
 
     init {
         viewModelScope.launch {
@@ -186,6 +187,15 @@ class MainViewModel(
                 )
             }
         }
+    }
+
+    fun triggerAutoScanIfReady(hasAllPermissions: Boolean) {
+        if (autoScanTriggered || !hasAllPermissions || !bleHeartRateRepository.isBluetoothEnabled()) {
+            return
+        }
+
+        autoScanTriggered = true
+        scanForDevices()
     }
 
     fun startMonitoring() {

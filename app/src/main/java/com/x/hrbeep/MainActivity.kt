@@ -68,6 +68,9 @@ class MainActivity : ComponentActivity() {
             val snackbarHostState = remember { SnackbarHostState() }
             val context = LocalContext.current
             val requiredPermissions = remember { requiredRuntimePermissions() }
+            val hasAllPermissions = requiredPermissions.all { permission ->
+                ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+            }
 
             val permissionLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.RequestMultiplePermissions(),
@@ -85,6 +88,10 @@ class MainActivity : ComponentActivity() {
                 val message = uiState.message ?: return@LaunchedEffect
                 snackbarHostState.showSnackbar(message)
                 viewModel.dismissMessage()
+            }
+
+            LaunchedEffect(hasAllPermissions, uiState.bluetoothEnabled) {
+                viewModel.triggerAutoScanIfReady(hasAllPermissions)
             }
 
             DisposableEffect(Unit) {
@@ -110,9 +117,7 @@ class MainActivity : ComponentActivity() {
                                 .fillMaxSize()
                                 .padding(padding),
                             uiState = uiState,
-                            hasAllPermissions = requiredPermissions.all { permission ->
-                                ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
-                            },
+                            hasAllPermissions = hasAllPermissions,
                             onGrantPermissions = {
                                 permissionLauncher.launch(requiredPermissions)
                             },
