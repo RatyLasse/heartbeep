@@ -4,6 +4,9 @@
 - Add icon to app.
 - Add zone options (Zone 1, Zone 2, Zone 3, Zone 4, Zone 5 audio notes).
 - Read current HR out loud?
+- Audio warning when connection lost
+- Track km and notify when goal is met or just notify after each km run?
+- Clean up repo tree, update README
 - Ensure HR data gets updated as fast and frequently as possible both to audio and UI.
 - When repo is in good condition, make it public on Github
 - Publish on Google Play
