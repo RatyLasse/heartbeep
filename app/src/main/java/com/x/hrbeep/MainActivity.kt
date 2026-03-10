@@ -53,6 +53,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.x.hrbeep.data.BleDeviceCandidate
 import com.x.hrbeep.monitoring.ConnectionState
+import com.x.hrbeep.ui.theme.HrBeepTheme
 
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
@@ -95,33 +96,35 @@ class MainActivity : ComponentActivity() {
                 onDispose { lifecycle.removeObserver(observer) }
             }
 
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                color = MaterialTheme.colorScheme.background,
-            ) {
-                Scaffold(
-                    snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-                ) { padding ->
-                    MainScreen(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding),
-                        uiState = uiState,
-                        hasAllPermissions = requiredPermissions.all { permission ->
-                            ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
-                        },
-                        onGrantPermissions = {
-                            permissionLauncher.launch(requiredPermissions)
-                        },
-                        onEnableBluetooth = {
-                            enableBluetoothLauncher.launch(viewModel.openBluetoothEnableIntent())
-                        },
-                        onThresholdChange = viewModel::onThresholdInputChanged,
-                        onScan = viewModel::scanForDevices,
-                        onSelectDevice = viewModel::selectDevice,
-                        onStartMonitoring = viewModel::startMonitoring,
-                        onStopMonitoring = viewModel::stopMonitoring,
-                    )
+            HrBeepTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
+                ) {
+                    Scaffold(
+                        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+                    ) { padding ->
+                        MainScreen(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(padding),
+                            uiState = uiState,
+                            hasAllPermissions = requiredPermissions.all { permission ->
+                                ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+                            },
+                            onGrantPermissions = {
+                                permissionLauncher.launch(requiredPermissions)
+                            },
+                            onEnableBluetooth = {
+                                enableBluetoothLauncher.launch(viewModel.openBluetoothEnableIntent())
+                            },
+                            onThresholdChange = viewModel::onThresholdInputChanged,
+                            onScan = viewModel::scanForDevices,
+                            onSelectDevice = viewModel::selectDevice,
+                            onStartMonitoring = viewModel::startMonitoring,
+                            onStopMonitoring = viewModel::stopMonitoring,
+                        )
+                    }
                 }
             }
         }
@@ -157,7 +160,7 @@ private fun MainScreen(
     ) {
         item {
             Text(
-                text = "Zone 2 alarm",
+                text = "Heart rate alarm",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
             )

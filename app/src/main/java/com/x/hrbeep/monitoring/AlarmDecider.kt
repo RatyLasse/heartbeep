@@ -1,26 +1,40 @@
 package com.x.hrbeep.monitoring
 
 class AlarmDecider(
-    private val cooldownMs: Long = DEFAULT_COOLDOWN_MS,
+    private val minimumIntervalMs: Long = DEFAULT_MINIMUM_INTERVAL_MS,
+    private val maximumIntervalMs: Long = DEFAULT_MAXIMUM_INTERVAL_MS,
 ) {
     private var lastAlarmAtMs: Long? = null
 
-    fun shouldBeep(currentHr: Int, threshold: Int, nowElapsedMs: Long): Boolean {
+    fun shouldBeep(
+        currentHr: Int,
+        threshold: Int,
+        nowElapsedMs: Long,
+        rrIntervalMs: Float? = null,
+    ): Boolean {
         if (currentHr <= threshold) {
             lastAlarmAtMs = null
             return false
         }
 
+        val intervalMs = (rrIntervalMs?.toLong() ?: bpmToIntervalMs(currentHr))
+            .coerceIn(minimumIntervalMs, maximumIntervalMs)
+
         val previous = lastAlarmAtMs
-        val shouldAlert = previous == null || nowElapsedMs - previous >= cooldownMs
+        val shouldAlert = previous == null || nowElapsedMs - previous >= intervalMs
         if (shouldAlert) {
             lastAlarmAtMs = nowElapsedMs
         }
         return shouldAlert
     }
 
+    private fun bpmToIntervalMs(currentHr: Int): Long {
+        val safeHr = currentHr.coerceAtLeast(1)
+        return 60_000L / safeHr
+    }
+
     companion object {
-        const val DEFAULT_COOLDOWN_MS = 1_500L
+        const val DEFAULT_MINIMUM_INTERVAL_MS = 333L
+        const val DEFAULT_MAXIMUM_INTERVAL_MS = 2_000L
     }
 }
-
