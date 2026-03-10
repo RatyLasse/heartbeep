@@ -11,3 +11,4 @@
 - When repo is in good condition, make it public on Github.
 - Publish on Google Play.
 - Add optional support the dev in-app purchase or paywall exercise history (payment only visible on that tab).
+- Add support for other devices besides H10. 
