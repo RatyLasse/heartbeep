@@ -34,8 +34,8 @@ class MonitoringController {
         _state.update { it.disableDistanceTracking() }
     }
 
-    fun updateDistance(distanceMeters: Double) {
-        _state.update { it.updateDistance(distanceMeters) }
+    fun updateDistance(distanceMeters: Double, paceSecondsPerKm: Int?) {
+        _state.update { it.updateDistance(distanceMeters, paceSecondsPerKm) }
     }
 
     fun onConnectionAttempt(

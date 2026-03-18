@@ -17,6 +17,7 @@ data class MonitoringSessionState(
     val currentHr: Int? = null,
     val averageHr: Int? = null,
     val distanceMeters: Double? = null,
+    val paceSecondsPerKm: Int? = null,
     val isDistanceTrackingEnabled: Boolean = false,
     val batteryLevelPercent: Int? = null,
     val deviceName: String? = null,
@@ -52,8 +53,10 @@ data class MonitoringSessionState(
 
     fun updateDistance(
         distanceMeters: Double,
+        paceSecondsPerKm: Int?,
     ): MonitoringSessionState = copy(
         distanceMeters = distanceMeters.coerceAtLeast(0.0),
+        paceSecondsPerKm = paceSecondsPerKm,
         isDistanceTrackingEnabled = true,
     )
 
@@ -114,6 +117,7 @@ data class MonitoringSessionState(
     private fun resetSessionMetrics(): MonitoringSessionState = copy(
         averageHr = null,
         distanceMeters = null,
+        paceSecondsPerKm = null,
         isDistanceTrackingEnabled = false,
     )
 }

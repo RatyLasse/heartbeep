@@ -413,6 +413,14 @@ private fun MonitoringTab(
                     )
                 }
 
+                uiState.monitoringState.paceSecondsPerKm?.let { pace ->
+                    Text(
+                        text = "Pace: ${formatPace(pace)} min/km",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -490,6 +498,7 @@ private fun SessionItem(session: SessionRecord, onDelete: () -> Unit) {
                     append(formatDuration(session.durationSeconds))
                     session.averageHr?.let { append(" · avg $it bpm") }
                     session.distanceMeters?.let { append(" · ${formatKilometers(it)} km") }
+                    session.paceSecondsPerKm?.let { append(" · ${formatPace(it)} min/km") }
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

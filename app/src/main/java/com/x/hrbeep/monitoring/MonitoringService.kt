@@ -9,11 +9,13 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.SystemClock
+import kotlin.math.roundToInt
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.x.hrbeep.HrBeepApplication
 import com.x.hrbeep.MainActivity
 import com.x.hrbeep.formatKilometers
+import com.x.hrbeep.formatPace
 import com.x.hrbeep.R
 import com.x.hrbeep.data.SessionHistoryRepository
 import com.x.hrbeep.data.SessionRecord
@@ -221,13 +223,20 @@ class MonitoringService : Service() {
             val finalState = monitoringController.state.value
             val durationSeconds = ((SystemClock.elapsedRealtime() - startElapsed) / 1000).toInt()
             if (durationSeconds >= MIN_SESSION_DURATION_SECONDS) {
+                val distanceMeters = finalState.distanceMeters
+                val paceSecondsPerKm = if (distanceMeters != null && distanceMeters >= 100.0) {
+                    (durationSeconds * 1000.0 / distanceMeters).roundToInt()
+                } else {
+                    null
+                }
                 serviceScope.launch(Dispatchers.IO) {
                     sessionHistoryRepository.saveSession(
                         SessionRecord(
                             startTimeMs = sessionStartTimeMs,
                             durationSeconds = durationSeconds,
                             averageHr = finalState.averageHr,
-                            distanceMeters = finalState.distanceMeters,
+                            distanceMeters = distanceMeters,
+                            paceSecondsPerKm = paceSecondsPerKm,
                         ),
                     )
                 }
@@ -267,7 +276,13 @@ class MonitoringService : Service() {
                     when (event) {
                         is GpsTrackingEvent.LocationUpdate -> {
                             val progress = distanceTracker.record(event.point) ?: return@collect
-                            monitoringController.updateDistance(progress.totalMeters)
+                            val elapsedSeconds = (SystemClock.elapsedRealtime() - sessionStartElapsedMs) / 1000.0
+                            val pace = if (progress.totalMeters >= 100.0 && elapsedSeconds > 0) {
+                                (elapsedSeconds * 1000.0 / progress.totalMeters).roundToInt()
+                            } else {
+                                null
+                            }
+                            monitoringController.updateDistance(progress.totalMeters, pace)
 
                             progress.completedKilometers.forEach { kilometer ->
                                 announceAudioAlert(SessionAudioAlert.DistanceMarker(kilometer))
@@ -345,6 +360,7 @@ class MonitoringService : Service() {
             val stats = buildList {
                 monitoringState.averageHr?.let { add("avg: $it bpm") }
                 monitoringState.distanceMeters?.let { add("dist: ${formatKilometers(it)} km") }
+                monitoringState.paceSecondsPerKm?.let { add("pace: ${formatPace(it)} min/km") }
             }
             val suffix = stats.takeIf { it.isNotEmpty() }?.joinToString(prefix = " (", postfix = ")").orEmpty()
             "HR $currentHr bpm$suffix | limit $threshold bpm"
