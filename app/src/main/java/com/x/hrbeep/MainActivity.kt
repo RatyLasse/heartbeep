@@ -123,6 +123,7 @@ class MainActivity : ComponentActivity() {
                                 enableBluetoothLauncher.launch(viewModel.openBluetoothEnableIntent())
                             },
                             onThresholdChange = viewModel::onThresholdInputChanged,
+            onLowerBoundChange = viewModel::onLowerBoundInputChanged,
                             onScan = viewModel::scanForDevices,
                             onSelectDevice = viewModel::selectDevice,
                             onSoundIntensityChange = viewModel::updateSoundIntensity,
@@ -152,6 +153,7 @@ private fun MainScreen(
     onGrantPermissions: () -> Unit,
     onEnableBluetooth: () -> Unit,
     onThresholdChange: (String) -> Unit,
+    onLowerBoundChange: (String) -> Unit,
     onScan: () -> Unit,
     onSelectDevice: (String) -> Unit,
     onSoundIntensityChange: (Float) -> Unit,
@@ -201,13 +203,24 @@ private fun MainScreen(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text("Limit", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Limits", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            OutlinedTextField(
+                                value = uiState.lowerBoundInput,
+                                onValueChange = onLowerBoundChange,
+                                modifier = Modifier.width(112.dp),
+                                label = { Text("Lower (opt.)") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                            )
                             OutlinedTextField(
                                 value = uiState.thresholdInput,
                                 onValueChange = onThresholdChange,
                                 modifier = Modifier.width(112.dp),
-                                label = { Text("bpm") },
+                                label = { Text("Upper bpm") },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 singleLine = true,
                             )
