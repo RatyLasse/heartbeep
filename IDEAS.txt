@@ -14,7 +14,6 @@
     - The session card should have date, average hr, distance (km)
 - Add history tab on swipe right. Include delete functionality. 
 - Clean up repo structure, update gitignore and README.
-- Ensure HR data gets updated as fast and frequently as possible both to audio and UI.
 - Rework UI
 - When repo is in good condition, make it public on Github.
 - Publish on Google Play.

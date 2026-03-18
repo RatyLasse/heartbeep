@@ -9,6 +9,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
@@ -34,7 +35,10 @@ class HeartRateConnectionManager(
     private val monitoringController: MonitoringController,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val _events = MutableSharedFlow<HeartRateConnectionEvent>(extraBufferCapacity = 32)
+    private val _events = MutableSharedFlow<HeartRateConnectionEvent>(
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
     val events = _events.asSharedFlow()
 
     private var targetDevice: ObservedDevice? = null
@@ -84,7 +88,7 @@ class HeartRateConnectionManager(
                         deviceAddress = device.deviceAddress,
                         update = update,
                     )
-                    _events.emit(
+                    _events.tryEmit(
                         HeartRateConnectionEvent.Update(
                             deviceName = device.deviceName,
                             deviceAddress = device.deviceAddress,
@@ -99,7 +103,7 @@ class HeartRateConnectionManager(
 
             val errorMessage = failureMessage ?: "Heart-rate strap disconnected."
             monitoringController.onConnectionLost(errorMessage)
-            _events.emit(
+            _events.tryEmit(
                 HeartRateConnectionEvent.ConnectionLost(
                     deviceName = device.deviceName,
                     deviceAddress = device.deviceAddress,

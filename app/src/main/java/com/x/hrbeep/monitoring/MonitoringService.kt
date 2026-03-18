@@ -110,9 +110,9 @@ class MonitoringService : Service() {
         val audioAlertTracker = SensorConnectionAudioAlertTracker().apply {
             onMonitoringStarted(hasLiveHeartRate = monitoringController.state.value.currentHr != null)
         }
-        val hrSamples = mutableListOf<Int>()
+        val hrSampleAccumulator = HeartRateSampleAccumulator()
 
-        monitoringJob = serviceScope.launch {
+        monitoringJob = serviceScope.launch(Dispatchers.Default) {
             heartRateConnectionManager.events.collect { event ->
                 when (event) {
                     is HeartRateConnectionEvent.ConnectionLost -> {
@@ -152,8 +152,7 @@ class MonitoringService : Service() {
                             return@collect
                         }
 
-                        hrSamples.add(sample.bpm)
-                        val averageHr = hrSamples.average().toInt()
+                        val averageHr = hrSampleAccumulator.record(sample.bpm)
                         val isAboveThreshold = sample.bpm > threshold
                         alarmPlayer.setPersistentDucking(isAboveThreshold)
                         monitoringController.updateMonitoringAverage(averageHr)
@@ -164,9 +163,7 @@ class MonitoringService : Service() {
                                 nowElapsedMs = sample.receivedAtElapsedMs,
                             )
                         ) {
-                            withContext(Dispatchers.Default) {
-                                alarmPlayer.beep(currentSoundIntensity)
-                            }
+                            alarmPlayer.beep(currentSoundIntensity)
                         }
 
                         updateForegroundNotification(

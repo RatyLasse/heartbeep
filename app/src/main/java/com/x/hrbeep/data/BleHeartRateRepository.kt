@@ -144,6 +144,7 @@ class BleHeartRateRepository(
 
                 when (newState) {
                     BluetoothGatt.STATE_CONNECTED -> {
+                        gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
                         if (!gatt.discoverServices()) {
                             close(IOException("Failed to discover GATT services."))
                         }
