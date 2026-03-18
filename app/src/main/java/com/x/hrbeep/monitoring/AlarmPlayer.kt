@@ -6,12 +6,14 @@ import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Build
+import android.speech.tts.TextToSpeech
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 class AlarmPlayer(
     context: Context,
@@ -21,11 +23,17 @@ class AlarmPlayer(
         const val TONE_DURATION_MS = 110
         const val BASE_VOLUME = 100
         const val EXTRA_DUCK_MS = 350L
+        const val SPEECH_FOCUS_DURATION_MS = 2_500
     }
 
+    private val appContext = context.applicationContext
     private val audioManager = context.getSystemService(AudioManager::class.java)
     private var generator: ToneGenerator? = null
     private var generatorVolume: Int? = null
+    private var textToSpeech: TextToSpeech? = null
+    private var isTextToSpeechReady = false
+    private var isInitializingTextToSpeech = false
+    private val pendingSpeech = ArrayDeque<String>()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var abandonFocusJob: Job? = null
     private var persistentDucking = false
@@ -69,6 +77,22 @@ class AlarmPlayer(
     }
 
     @Synchronized
+    fun speak(message: String) {
+        if (message.isBlank()) {
+            return
+        }
+
+        if (!isTextToSpeechReady) {
+            pendingSpeech += message
+            initializeTextToSpeechIfNeeded()
+            return
+        }
+
+        requestTransientAudioFocus(SPEECH_FOCUS_DURATION_MS)
+        textToSpeech?.speak(message, TextToSpeech.QUEUE_ADD, null, "monitoring-${System.nanoTime()}")
+    }
+
+    @Synchronized
     fun setPersistentDucking(enabled: Boolean) {
         if (persistentDucking == enabled) {
             return
@@ -93,6 +117,12 @@ class AlarmPlayer(
         generator?.release()
         generator = null
         generatorVolume = null
+        pendingSpeech.clear()
+        isTextToSpeechReady = false
+        isInitializingTextToSpeech = false
+        textToSpeech?.stop()
+        textToSpeech?.shutdown()
+        textToSpeech = null
     }
 
     private fun requestTransientAudioFocus(durationMs: Int) {
@@ -130,6 +160,44 @@ class AlarmPlayer(
         } else {
             @Suppress("DEPRECATION")
             audioManager.abandonAudioFocus(null)
+        }
+    }
+
+    private fun initializeTextToSpeechIfNeeded() {
+        if (isTextToSpeechReady || isInitializingTextToSpeech) {
+            return
+        }
+
+        isInitializingTextToSpeech = true
+        textToSpeech = TextToSpeech(appContext) { status ->
+            synchronized(this) {
+                isInitializingTextToSpeech = false
+                if (status != TextToSpeech.SUCCESS) {
+                    pendingSpeech.clear()
+                    textToSpeech?.shutdown()
+                    textToSpeech = null
+                    return@synchronized
+                }
+
+                textToSpeech?.setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build()
+                )
+                textToSpeech?.setLanguage(Locale.US)
+                isTextToSpeechReady = true
+
+                while (pendingSpeech.isNotEmpty()) {
+                    requestTransientAudioFocus(SPEECH_FOCUS_DURATION_MS)
+                    textToSpeech?.speak(
+                        pendingSpeech.removeFirst(),
+                        TextToSpeech.QUEUE_ADD,
+                        null,
+                        "monitoring-${System.nanoTime()}",
+                    )
+                }
+            }
         }
     }
 }

@@ -80,6 +80,7 @@ class MonitoringService : Service() {
     override fun onDestroy() {
         monitoringJob?.cancel()
         settingsJob?.cancel()
+        alarmPlayer.release()
         serviceScope.cancel()
         super.onDestroy()
     }
@@ -108,14 +109,24 @@ class MonitoringService : Service() {
         )
 
         val alarmDecider = AlarmDecider()
+        val audioAlertTracker = MonitoringAudioAlertTracker().apply { onMonitoringStarted() }
         val hrSamples = mutableListOf<Int>()
 
         monitoringJob = serviceScope.launch {
             bleHeartRateRepository.observeHeartRateMonitor(deviceAddress)
                 .catch { throwable ->
-                    stopMonitoring(throwable.message ?: "Monitoring failed.")
+                    audioAlertTracker.onMonitoringFailure()?.let { alert ->
+                        announceAudioAlert(alert)
+                    }
+                    stopMonitoring(
+                        errorMessage = throwable.message ?: "Monitoring failed.",
+                        disconnected = audioAlertTracker.hasSeenLiveHeartRate,
+                    )
                 }
                 .collect { update ->
+                    audioAlertTracker.onMonitorUpdate(update)?.let { alert ->
+                        announceAudioAlert(alert)
+                    }
                     val sample = update.heartRateSample
                     if (sample == null) {
                         monitoringController.update { state ->
@@ -158,17 +169,35 @@ class MonitoringService : Service() {
         }
     }
 
-    private fun stopMonitoring(errorMessage: String? = null) {
+    private fun stopMonitoring(
+        errorMessage: String? = null,
+        disconnected: Boolean = false,
+    ) {
         monitoringJob?.cancel()
         monitoringJob = null
         alarmPlayer.setPersistentDucking(false)
 
         monitoringController.update {
-            it.endMonitoring(errorMessage)
+            when {
+                errorMessage == null -> it.endMonitoring()
+                disconnected -> it.endMonitoringDisconnected(errorMessage)
+                else -> it.endMonitoring(errorMessage)
+            }
         }
 
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
+    }
+
+    private suspend fun announceAudioAlert(alert: MonitoringAudioAlert) {
+        val message = when (alert) {
+            MonitoringAudioAlert.SensorConnected -> getString(R.string.audio_alert_sensor_connected)
+            MonitoringAudioAlert.SensorDisconnected -> getString(R.string.audio_alert_sensor_disconnected)
+        }
+
+        withContext(Dispatchers.Default) {
+            alarmPlayer.speak(message)
+        }
     }
 
     private fun startForegroundWithState(contentText: String, threshold: Int) {

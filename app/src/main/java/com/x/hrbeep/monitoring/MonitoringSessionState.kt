@@ -22,6 +22,15 @@ data class MonitoringSessionState(
     val deviceAddress: String? = null,
     val errorMessage: String? = null,
 ) {
+    private fun endMonitoringWithFailure(
+        connectionState: ConnectionState,
+        errorMessage: String,
+    ): MonitoringSessionState = copy(
+        isMonitoring = false,
+        connectionState = connectionState,
+        errorMessage = errorMessage,
+    )
+
     fun beginMonitoring(
         deviceName: String,
         deviceAddress: String,
@@ -71,12 +80,17 @@ data class MonitoringSessionState(
                 errorMessage = null,
             )
         } else {
-            copy(
-                isMonitoring = false,
+            endMonitoringWithFailure(
                 connectionState = ConnectionState.Error,
                 errorMessage = errorMessage,
             )
         }
+
+    fun endMonitoringDisconnected(errorMessage: String): MonitoringSessionState =
+        endMonitoringWithFailure(
+            connectionState = ConnectionState.Disconnected,
+            errorMessage = errorMessage,
+        )
 
     fun beginPreview(
         deviceName: String,

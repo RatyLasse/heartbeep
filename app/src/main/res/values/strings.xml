@@ -6,4 +6,6 @@
     <string name="notification_connecting">Connecting to Polar H10…</string>
     <string name="notification_idle">Ready to monitor</string>
     <string name="notification_stop">Stop</string>
+    <string name="audio_alert_sensor_connected">Sensor connected</string>
+    <string name="audio_alert_sensor_disconnected">Sensor disconnected</string>
 </resources>

@@ -3,8 +3,8 @@ package com.x.hrbeep.monitoring
 import com.x.hrbeep.data.HeartRateMonitorUpdate
 import com.x.hrbeep.data.HeartRateSample
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class MonitoringSessionStateTest {
@@ -71,5 +71,25 @@ class MonitoringSessionStateTest {
         assertEquals(148, cleared.averageHr)
         assertNull(cleared.currentHr)
         assertNull(cleared.deviceAddress)
+    }
+
+    @Test
+    fun `end monitoring disconnected marks the disconnected state`() {
+        val stopped = MonitoringSessionState(
+            isMonitoring = true,
+            connectionState = ConnectionState.Monitoring,
+            currentHr = 151,
+            averageHr = 144,
+            batteryLevelPercent = 68,
+            threshold = 150,
+            deviceName = "Polar H10",
+            deviceAddress = "AA:BB",
+        ).endMonitoringDisconnected("Heart-rate strap disconnected.")
+
+        assertFalse(stopped.isMonitoring)
+        assertEquals(ConnectionState.Disconnected, stopped.connectionState)
+        assertEquals("Heart-rate strap disconnected.", stopped.errorMessage)
+        assertEquals(151, stopped.currentHr)
+        assertEquals(144, stopped.averageHr)
     }
 }

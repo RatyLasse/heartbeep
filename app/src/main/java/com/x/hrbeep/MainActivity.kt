@@ -304,6 +304,8 @@ private fun DashboardStatusRow(
                         "Monitoring ${monitoringState.deviceName ?: "Polar H10"}"
                     monitoringState.connectionState == ConnectionState.Connecting ->
                         "Connecting to ${monitoringState.deviceName ?: "Polar H10"}..."
+                    monitoringState.connectionState == ConnectionState.Disconnected ->
+                        monitoringState.errorMessage ?: "Sensor disconnected."
                     monitoringState.connectionState == ConnectionState.Error ->
                         monitoringState.errorMessage ?: "Monitoring failed."
                     else -> "Ready to scan for your H10."
