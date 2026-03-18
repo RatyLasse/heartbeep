@@ -1,10 +1,25 @@
 package com.x.hrbeep.monitoring
 
+enum class AlarmTrigger {
+    AboveUpperBound,
+    BelowLowerBound,
+}
+
 class AlarmDecider(
     private val minimumIntervalMs: Long = DEFAULT_MINIMUM_INTERVAL_MS,
     private val maximumIntervalMs: Long = DEFAULT_MAXIMUM_INTERVAL_MS,
 ) {
     private var lastAlarmAtMs: Long? = null
+
+    fun currentAlertTrigger(
+        currentHr: Int,
+        threshold: Int,
+        lowerBound: Int? = null,
+    ): AlarmTrigger? = when {
+        currentHr > threshold -> AlarmTrigger.AboveUpperBound
+        lowerBound != null && currentHr < lowerBound -> AlarmTrigger.BelowLowerBound
+        else -> null
+    }
 
     fun shouldBeep(
         currentHr: Int,
@@ -12,8 +27,12 @@ class AlarmDecider(
         lowerBound: Int? = null,
         nowElapsedMs: Long,
     ): Boolean {
-        val isOutOfRange = currentHr > threshold || (lowerBound != null && currentHr < lowerBound)
-        if (!isOutOfRange) {
+        val activeTrigger = currentAlertTrigger(
+            currentHr = currentHr,
+            threshold = threshold,
+            lowerBound = lowerBound,
+        )
+        if (activeTrigger == null) {
             lastAlarmAtMs = null
             return false
         }

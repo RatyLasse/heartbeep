@@ -18,8 +18,14 @@ import java.util.Locale
 class AlarmPlayer(
     context: Context,
 ) {
+    enum class BeepProfile {
+        AboveUpperBound,
+        BelowLowerBound,
+    }
+
     private companion object {
-        const val TONE_CODE = ToneGenerator.TONE_CDMA_PIP
+        const val UPPER_BOUND_TONE_CODE = ToneGenerator.TONE_CDMA_PIP
+        const val LOWER_BOUND_TONE_CODE = ToneGenerator.TONE_CDMA_LOW_L
         const val TONE_DURATION_MS = 110
         const val BASE_VOLUME = 100
         const val EXTRA_DUCK_MS = 350L
@@ -52,10 +58,13 @@ class AlarmPlayer(
                 .build()
         } else {
             null
-        }
+    }
 
     @Synchronized
-    fun beep(intensity: Int) {
+    fun beep(
+        intensity: Int,
+        profile: BeepProfile = BeepProfile.AboveUpperBound,
+    ) {
         val clampedIntensity = intensity.coerceIn(0, 100)
         val effectiveVolume = (BASE_VOLUME * (clampedIntensity / 100f))
             .toInt()
@@ -73,7 +82,7 @@ class AlarmPlayer(
                 generatorVolume = effectiveVolume
             }
         }
-        activeGenerator.startTone(TONE_CODE, TONE_DURATION_MS)
+        activeGenerator.startTone(toneCode(profile), TONE_DURATION_MS)
     }
 
     @Synchronized
@@ -199,5 +208,10 @@ class AlarmPlayer(
                 }
             }
         }
+    }
+
+    private fun toneCode(profile: BeepProfile): Int = when (profile) {
+        BeepProfile.AboveUpperBound -> UPPER_BOUND_TONE_CODE
+        BeepProfile.BelowLowerBound -> LOWER_BOUND_TONE_CODE
     }
 }

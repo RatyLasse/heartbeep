@@ -1,10 +1,39 @@
 package com.x.hrbeep.monitoring
 
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class AlarmDeciderTest {
+    @Test
+    fun `returns above-upper trigger when heart rate exceeds threshold`() {
+        val decider = AlarmDecider()
+
+        assertEquals(
+            AlarmTrigger.AboveUpperBound,
+            decider.currentAlertTrigger(currentHr = 151, threshold = 150, lowerBound = 50),
+        )
+    }
+
+    @Test
+    fun `returns below-lower trigger when heart rate drops below lower bound`() {
+        val decider = AlarmDecider()
+
+        assertEquals(
+            AlarmTrigger.BelowLowerBound,
+            decider.currentAlertTrigger(currentHr = 49, threshold = 150, lowerBound = 50),
+        )
+    }
+
+    @Test
+    fun `returns no trigger when heart rate is within configured bounds`() {
+        val decider = AlarmDecider()
+
+        assertNull(decider.currentAlertTrigger(currentHr = 100, threshold = 150, lowerBound = 50))
+    }
+
     @Test
     fun `beeps when first crossing above threshold`() {
         val decider = AlarmDecider(minimumIntervalMs = 300L, maximumIntervalMs = 2_000L)

@@ -160,9 +160,12 @@ class MonitoringService : Service() {
                         }
 
                         val averageHr = hrSampleAccumulator.record(sample.bpm)
-                        val isOutOfRange =
-                            sample.bpm > threshold || (lowerBound != null && sample.bpm < lowerBound)
-                        alarmPlayer.setPersistentDucking(isOutOfRange)
+                        val activeAlertTrigger = alarmDecider.currentAlertTrigger(
+                            currentHr = sample.bpm,
+                            threshold = threshold,
+                            lowerBound = lowerBound,
+                        )
+                        alarmPlayer.setPersistentDucking(activeAlertTrigger != null)
                         monitoringController.updateMonitoringAverage(averageHr)
 
                         if (alarmDecider.shouldBeep(
@@ -172,7 +175,15 @@ class MonitoringService : Service() {
                                 nowElapsedMs = sample.receivedAtElapsedMs,
                             )
                         ) {
-                            alarmPlayer.beep(currentSoundIntensity)
+                            alarmPlayer.beep(
+                                intensity = currentSoundIntensity,
+                                profile = when (activeAlertTrigger) {
+                                    AlarmTrigger.BelowLowerBound -> AlarmPlayer.BeepProfile.BelowLowerBound
+                                    AlarmTrigger.AboveUpperBound,
+                                    null,
+                                    -> AlarmPlayer.BeepProfile.AboveUpperBound
+                                },
+                            )
                         }
 
                         updateForegroundNotification(
