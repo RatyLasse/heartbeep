@@ -10,4 +10,5 @@ data class SessionRecord(
     val durationSeconds: Int,
     val averageHr: Int?,
     val distanceMeters: Double?,
+    val paceSecondsPerKm: Int? = null,
 )
