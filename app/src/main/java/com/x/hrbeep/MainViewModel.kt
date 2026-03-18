@@ -275,7 +275,6 @@ class MainViewModel(
                 state.copy(
                     connectionState = ConnectionState.Connecting,
                     currentHr = null,
-                    averageHr = null,
                     threshold = null,
                     deviceName = deviceName,
                     deviceAddress = deviceAddress,
@@ -300,7 +299,6 @@ class MainViewModel(
                                 state.copy(
                                     connectionState = ConnectionState.Connected,
                                     currentHr = sample.bpm,
-                                    averageHr = null,
                                     threshold = null,
                                     deviceName = deviceName,
                                     deviceAddress = deviceAddress,
@@ -321,7 +319,6 @@ class MainViewModel(
                         state.copy(
                             connectionState = ConnectionState.Error,
                             currentHr = null,
-                            averageHr = null,
                             threshold = null,
                             errorMessage = failureMessage ?: "Heart-rate strap disconnected.",
                         )
@@ -360,7 +357,14 @@ class MainViewModel(
             if (state.isMonitoring) {
                 state
             } else {
-                MonitoringSessionState()
+                state.copy(
+                    connectionState = ConnectionState.Idle,
+                    currentHr = null,
+                    threshold = null,
+                    deviceName = null,
+                    deviceAddress = null,
+                    errorMessage = null,
+                )
             }
         }
     }
