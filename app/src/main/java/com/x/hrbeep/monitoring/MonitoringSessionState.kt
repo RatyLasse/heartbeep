@@ -16,6 +16,8 @@ data class MonitoringSessionState(
     val connectionState: ConnectionState = ConnectionState.Idle,
     val currentHr: Int? = null,
     val averageHr: Int? = null,
+    val distanceMeters: Double? = null,
+    val isDistanceTrackingEnabled: Boolean = false,
     val batteryLevelPercent: Int? = null,
     val threshold: Int? = null,
     val deviceName: String? = null,
@@ -24,9 +26,8 @@ data class MonitoringSessionState(
 ) {
     fun beginMonitoring(
         threshold: Int,
-    ): MonitoringSessionState = copy(
+    ): MonitoringSessionState = resetSessionMetrics().copy(
         isMonitoring = true,
-        averageHr = null,
         threshold = threshold,
         errorMessage = null,
         connectionState = when (connectionState) {
@@ -42,6 +43,22 @@ data class MonitoringSessionState(
         averageHr: Int,
     ): MonitoringSessionState = copy(
         averageHr = averageHr,
+    )
+
+    fun enableDistanceTracking(): MonitoringSessionState = copy(
+        isDistanceTrackingEnabled = true,
+        distanceMeters = distanceMeters ?: 0.0,
+    )
+
+    fun disableDistanceTracking(): MonitoringSessionState = copy(
+        isDistanceTrackingEnabled = false,
+    )
+
+    fun updateDistance(
+        distanceMeters: Double,
+    ): MonitoringSessionState = copy(
+        distanceMeters = distanceMeters.coerceAtLeast(0.0),
+        isDistanceTrackingEnabled = true,
     )
 
     fun endMonitoring(): MonitoringSessionState = copy(
@@ -89,14 +106,20 @@ data class MonitoringSessionState(
         errorMessage = errorMessage,
     )
 
-    fun clearSelectedDevice(): MonitoringSessionState = copy(
+    fun clearSelectedDevice(): MonitoringSessionState = resetSessionMetrics().copy(
         isMonitoring = false,
         connectionState = ConnectionState.Idle,
         currentHr = null,
         batteryLevelPercent = null,
-        threshold = null,
         deviceName = null,
         deviceAddress = null,
         errorMessage = null,
+    )
+
+    private fun resetSessionMetrics(): MonitoringSessionState = copy(
+        averageHr = null,
+        distanceMeters = null,
+        isDistanceTrackingEnabled = false,
+        threshold = null,
     )
 }

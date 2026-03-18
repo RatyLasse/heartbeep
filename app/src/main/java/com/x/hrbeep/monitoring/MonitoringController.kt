@@ -26,6 +26,18 @@ class MonitoringController {
         _state.update { it.updateMonitoringAverage(averageHr) }
     }
 
+    fun enableDistanceTracking() {
+        _state.update { it.enableDistanceTracking() }
+    }
+
+    fun disableDistanceTracking() {
+        _state.update { it.disableDistanceTracking() }
+    }
+
+    fun updateDistance(distanceMeters: Double) {
+        _state.update { it.updateDistance(distanceMeters) }
+    }
+
     fun onConnectionAttempt(
         deviceName: String,
         deviceAddress: String,

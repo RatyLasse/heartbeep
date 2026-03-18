@@ -2,6 +2,7 @@ package com.x.hrbeep
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -38,7 +39,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -53,6 +56,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.x.hrbeep.data.BleDeviceCandidate
 import com.x.hrbeep.monitoring.ConnectionState
 import com.x.hrbeep.ui.theme.HrBeepTheme
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
@@ -65,20 +69,37 @@ class MainActivity : ComponentActivity() {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
             val snackbarHostState = remember { SnackbarHostState() }
             val context = LocalContext.current
-            val requiredPermissions = remember { requiredRuntimePermissions() }
-            val hasAllPermissions = requiredPermissions.all { permission ->
+            var systemStateVersion by remember { mutableIntStateOf(0) }
+            val monitoringPermissions = remember { requiredMonitoringPermissions() }
+            val hasMonitoringPermissions = monitoringPermissions.all { permission ->
                 ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
             }
+            val hasLocationPermission =
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                ) == PackageManager.PERMISSION_GRANTED
+            val gpsEnabled = context.getSystemService(LocationManager::class.java)
+                .isProviderEnabled(LocationManager.GPS_PROVIDER)
 
             val permissionLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.RequestMultiplePermissions(),
             ) {
+                systemStateVersion += 1
+                viewModel.refreshBluetoothState()
+            }
+
+            val locationPermissionLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.RequestPermission(),
+            ) {
+                systemStateVersion += 1
                 viewModel.refreshBluetoothState()
             }
 
             val enableBluetoothLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.StartActivityForResult(),
             ) {
+                systemStateVersion += 1
                 viewModel.refreshBluetoothState()
             }
 
@@ -88,13 +109,14 @@ class MainActivity : ComponentActivity() {
                 viewModel.dismissMessage()
             }
 
-            LaunchedEffect(hasAllPermissions, uiState.bluetoothEnabled) {
-                viewModel.triggerAutoScanIfReady(hasAllPermissions)
+            LaunchedEffect(systemStateVersion, hasMonitoringPermissions, uiState.bluetoothEnabled) {
+                viewModel.triggerAutoScanIfReady(hasMonitoringPermissions)
             }
 
             DisposableEffect(Unit) {
                 val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
                     if (event == Lifecycle.Event.ON_RESUME) {
+                        systemStateVersion += 1
                         viewModel.refreshBluetoothState()
                     }
                 }
@@ -115,9 +137,14 @@ class MainActivity : ComponentActivity() {
                                 .fillMaxSize()
                                 .padding(padding),
                             uiState = uiState,
-                            hasAllPermissions = hasAllPermissions,
+                            hasMonitoringPermissions = hasMonitoringPermissions,
+                            hasLocationPermission = hasLocationPermission,
+                            gpsEnabled = gpsEnabled,
                             onGrantPermissions = {
-                                permissionLauncher.launch(requiredPermissions)
+                                permissionLauncher.launch(monitoringPermissions)
+                            },
+                            onGrantLocationPermission = {
+                                locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                             },
                             onEnableBluetooth = {
                                 enableBluetoothLauncher.launch(viewModel.openBluetoothEnableIntent())
@@ -136,7 +163,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private fun requiredRuntimePermissions(): Array<String> = buildList {
+private fun requiredMonitoringPermissions(): Array<String> = buildList {
     add(Manifest.permission.BLUETOOTH_SCAN)
     add(Manifest.permission.BLUETOOTH_CONNECT)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -148,8 +175,11 @@ private fun requiredRuntimePermissions(): Array<String> = buildList {
 private fun MainScreen(
     modifier: Modifier = Modifier,
     uiState: MainUiState,
-    hasAllPermissions: Boolean,
+    hasMonitoringPermissions: Boolean,
+    hasLocationPermission: Boolean,
+    gpsEnabled: Boolean,
     onGrantPermissions: () -> Unit,
+    onGrantLocationPermission: () -> Unit,
     onEnableBluetooth: () -> Unit,
     onThresholdChange: (String) -> Unit,
     onScan: () -> Unit,
@@ -183,7 +213,7 @@ private fun MainScreen(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
                     DashboardStatusRow(
-                        hasAllPermissions = hasAllPermissions,
+                        hasMonitoringPermissions = hasMonitoringPermissions,
                         bluetoothEnabled = uiState.bluetoothEnabled,
                         monitoringState = uiState.monitoringState,
                         onGrantPermissions = onGrantPermissions,
@@ -194,7 +224,7 @@ private fun MainScreen(
                         uiState = uiState,
                         onScan = onScan,
                         onSelectDevice = onSelectDevice,
-                        enabled = hasAllPermissions &&
+                        enabled = hasMonitoringPermissions &&
                             uiState.bluetoothEnabled &&
                             !uiState.monitoringState.isMonitoring,
                     )
@@ -229,6 +259,15 @@ private fun MainScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+
+                    DistanceStatusSection(
+                        isMonitoring = uiState.monitoringState.isMonitoring,
+                        distanceMeters = uiState.monitoringState.distanceMeters,
+                        isDistanceTrackingEnabled = uiState.monitoringState.isDistanceTrackingEnabled,
+                        hasLocationPermission = hasLocationPermission,
+                        gpsEnabled = gpsEnabled,
+                        onGrantLocationPermission = onGrantLocationPermission,
+                    )
                 }
 
                 Column(
@@ -257,13 +296,25 @@ private fun MainScreen(
                         )
                     }
 
+                    uiState.monitoringState.distanceMeters?.let { distanceMeters ->
+                        Text(
+                            text = if (uiState.monitoringState.isMonitoring) {
+                                "Distance: ${formatDistanceKilometers(distanceMeters)} km"
+                            } else {
+                                "Last distance: ${formatDistanceKilometers(distanceMeters)} km"
+                            },
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Button(
                             onClick = onStartMonitoring,
-                            enabled = hasAllPermissions && uiState.bluetoothEnabled && !uiState.monitoringState.isMonitoring,
+                            enabled = hasMonitoringPermissions && uiState.bluetoothEnabled && !uiState.monitoringState.isMonitoring,
                             modifier = Modifier.weight(1f),
                         ) {
                             Text("Start")
@@ -284,7 +335,7 @@ private fun MainScreen(
 
 @Composable
 private fun DashboardStatusRow(
-    hasAllPermissions: Boolean,
+    hasMonitoringPermissions: Boolean,
     bluetoothEnabled: Boolean,
     monitoringState: com.x.hrbeep.monitoring.MonitoringSessionState,
     onGrantPermissions: () -> Unit,
@@ -298,7 +349,7 @@ private fun DashboardStatusRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = when {
-                    !hasAllPermissions -> "Bluetooth and notification permissions are still missing."
+                    !hasMonitoringPermissions -> "Bluetooth and notification permissions are still missing."
                     !bluetoothEnabled -> "Bluetooth is off."
                     monitoringState.connectionState == ConnectionState.Connected ->
                         "Connected to ${monitoringState.deviceName ?: "Polar H10"}. Alarm is idle."
@@ -318,7 +369,7 @@ private fun DashboardStatusRow(
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        if (!hasAllPermissions) {
+        if (!hasMonitoringPermissions) {
             TextButton(onClick = onGrantPermissions) {
                 Text("Grant")
             }
@@ -329,6 +380,47 @@ private fun DashboardStatusRow(
         }
     }
 }
+
+@Composable
+private fun DistanceStatusSection(
+    isMonitoring: Boolean,
+    distanceMeters: Double?,
+    isDistanceTrackingEnabled: Boolean,
+    hasLocationPermission: Boolean,
+    gpsEnabled: Boolean,
+    onGrantLocationPermission: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("Distance", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            text = when {
+                !hasLocationPermission ->
+                    "Optional GPS distance tracking is off until you allow location access."
+                !gpsEnabled ->
+                    "Turn GPS on to add distance tracking to the next session."
+                isMonitoring && !isDistanceTrackingEnabled ->
+                    "GPS distance tracking is unavailable right now."
+                isMonitoring ->
+                    "Distance tracking is active."
+                distanceMeters != null ->
+                    "Last tracked distance stays visible after you stop."
+                else ->
+                    "Distance tracking starts automatically when GPS is on."
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        if (!hasLocationPermission) {
+            TextButton(onClick = onGrantLocationPermission) {
+                Text("Allow location")
+            }
+        }
+    }
+}
+
+private fun formatDistanceKilometers(distanceMeters: Double): String =
+    String.format(Locale.US, "%.2f", distanceMeters / 1_000.0)
 
 @Composable
 private fun DeviceCompactRow(

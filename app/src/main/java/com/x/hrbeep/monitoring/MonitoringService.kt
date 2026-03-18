@@ -28,9 +28,11 @@ class MonitoringService : Service() {
     private lateinit var thresholdRepository: ThresholdRepository
     private lateinit var monitoringController: MonitoringController
     private lateinit var alarmPlayer: AlarmPlayer
+    private lateinit var gpsLocationTracker: GpsLocationTracker
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var monitoringJob: Job? = null
+    private var distanceTrackingJob: Job? = null
     private var settingsJob: Job? = null
     private var currentSoundIntensity: Int = ThresholdRepository.DEFAULT_SOUND_INTENSITY
 
@@ -41,6 +43,7 @@ class MonitoringService : Service() {
         thresholdRepository = container.thresholdRepository
         monitoringController = container.monitoringController
         alarmPlayer = container.alarmPlayer
+        gpsLocationTracker = container.gpsLocationTracker
         createNotificationChannel()
 
         settingsJob = serviceScope.launch {
@@ -77,6 +80,7 @@ class MonitoringService : Service() {
 
     override fun onDestroy() {
         monitoringJob?.cancel()
+        distanceTrackingJob?.cancel()
         settingsJob?.cancel()
         alarmPlayer.release()
         serviceScope.cancel()
@@ -97,6 +101,7 @@ class MonitoringService : Service() {
             deviceAddress = deviceAddress,
         )
         monitoringController.beginMonitoring(threshold)
+        startDistanceTracking(threshold)
 
         startForegroundWithState(
             contentText = notificationContentText(
@@ -182,6 +187,8 @@ class MonitoringService : Service() {
     private fun stopMonitoring(errorMessage: String? = null) {
         monitoringJob?.cancel()
         monitoringJob = null
+        distanceTrackingJob?.cancel()
+        distanceTrackingJob = null
         alarmPlayer.setPersistentDucking(false)
 
         if (errorMessage == null) {
@@ -198,16 +205,70 @@ class MonitoringService : Service() {
         }
     }
 
+    private fun startDistanceTracking(threshold: Int) {
+        distanceTrackingJob?.cancel()
+        distanceTrackingJob = null
+
+        if (!gpsLocationTracker.canTrackDistance()) {
+            monitoringController.disableDistanceTracking()
+            return
+        }
+
+        monitoringController.enableDistanceTracking()
+
+        val distanceTracker = DistanceTracker()
+        distanceTrackingJob = serviceScope.launch {
+            runCatching {
+                gpsLocationTracker.updates().collect { event ->
+                    when (event) {
+                        is GpsTrackingEvent.LocationUpdate -> {
+                            val progress = distanceTracker.record(event.point) ?: return@collect
+                            monitoringController.updateDistance(progress.totalMeters)
+
+                            progress.completedKilometers.forEach { kilometer ->
+                                announceAudioAlert(SessionAudioAlert.DistanceMarker(kilometer))
+                            }
+
+                            updateForegroundNotification(
+                                contentText = notificationContentText(
+                                    monitoringState = monitoringController.state.value,
+                                    threshold = threshold,
+                                ),
+                                threshold = threshold,
+                            )
+                        }
+
+                        GpsTrackingEvent.ProviderDisabled -> {
+                            monitoringController.disableDistanceTracking()
+                            updateForegroundNotification(
+                                contentText = notificationContentText(
+                                    monitoringState = monitoringController.state.value,
+                                    threshold = threshold,
+                                ),
+                                threshold = threshold,
+                            )
+                        }
+                    }
+                }
+            }.onFailure {
+                monitoringController.disableDistanceTracking()
+                updateForegroundNotification(
+                    contentText = notificationContentText(
+                        monitoringState = monitoringController.state.value,
+                        threshold = threshold,
+                    ),
+                    threshold = threshold,
+                )
+            }
+        }
+    }
+
     private fun startForegroundWithState(contentText: String, threshold: Int) {
         ServiceCompat.startForeground(
             this,
             NOTIFICATION_ID,
             buildNotification(contentText = contentText, threshold = threshold),
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
-            } else {
-                0
-            },
+            foregroundServiceType(),
         )
     }
 
@@ -219,14 +280,30 @@ class MonitoringService : Service() {
         )
     }
 
+    private fun foregroundServiceType(): Int {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            return 0
+        }
+
+        var type = android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+        if (gpsLocationTracker.canTrackDistance()) {
+            type = type or android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+        }
+        return type
+    }
+
     private fun notificationContentText(
         monitoringState: MonitoringSessionState,
         threshold: Int,
     ): String = when (monitoringState.connectionState) {
         ConnectionState.Monitoring -> {
             val currentHr = monitoringState.currentHr ?: return "Waiting for heart-rate data | limit $threshold bpm"
-            val averageHr = monitoringState.averageHr?.let { " (avg: $it bpm)" }.orEmpty()
-            "HR $currentHr bpm$averageHr | limit $threshold bpm"
+            val stats = buildList {
+                monitoringState.averageHr?.let { add("avg: $it bpm") }
+                monitoringState.distanceMeters?.let { add("dist: ${formatKilometers(it)} km") }
+            }
+            val suffix = stats.takeIf { it.isNotEmpty() }?.joinToString(prefix = " (", postfix = ")").orEmpty()
+            "HR $currentHr bpm$suffix | limit $threshold bpm"
         }
 
         ConnectionState.Disconnected -> monitoringState.errorMessage ?: "Sensor disconnected."
@@ -264,6 +341,9 @@ class MonitoringService : Service() {
             )
             .build()
     }
+
+    private fun formatKilometers(distanceMeters: Double): String =
+        String.format(java.util.Locale.US, "%.2f", distanceMeters / 1_000.0)
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {

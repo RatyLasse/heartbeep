@@ -4,8 +4,8 @@ import com.x.hrbeep.data.HeartRateMonitorUpdate
 import com.x.hrbeep.data.HeartRateSample
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MonitoringSessionStateTest {
@@ -24,6 +24,8 @@ class MonitoringSessionStateTest {
         assertEquals(156, monitoring.currentHr)
         assertEquals(82, monitoring.batteryLevelPercent)
         assertEquals(150, monitoring.threshold)
+        assertNull(monitoring.distanceMeters)
+        assertFalse(monitoring.isDistanceTrackingEnabled)
         assertEquals("Polar H10", monitoring.deviceName)
         assertEquals("AA:BB", monitoring.deviceAddress)
     }
@@ -35,6 +37,8 @@ class MonitoringSessionStateTest {
             connectionState = ConnectionState.Monitoring,
             currentHr = 156,
             averageHr = 148,
+            distanceMeters = 3_620.0,
+            isDistanceTrackingEnabled = true,
             batteryLevelPercent = 76,
             threshold = 150,
             deviceName = "Polar H10",
@@ -45,6 +49,8 @@ class MonitoringSessionStateTest {
         assertEquals(ConnectionState.Connected, stopped.connectionState)
         assertEquals(156, stopped.currentHr)
         assertEquals(148, stopped.averageHr)
+        assertEquals(3_620.0, stopped.distanceMeters!!, 0.0)
+        assertTrue(stopped.isDistanceTrackingEnabled)
         assertEquals(76, stopped.batteryLevelPercent)
         assertNull(stopped.threshold)
         assertEquals("Polar H10", stopped.deviceName)
@@ -98,5 +104,40 @@ class MonitoringSessionStateTest {
         assertEquals("Heart-rate strap disconnected.", disconnected.errorMessage)
         assertNull(disconnected.currentHr)
         assertEquals(144, disconnected.averageHr)
+    }
+
+    @Test
+    fun `begin monitoring clears previous session distance`() {
+        val restarted = MonitoringSessionState(
+            averageHr = 148,
+            distanceMeters = 4_280.0,
+            isDistanceTrackingEnabled = true,
+            connectionState = ConnectionState.Connected,
+        ).beginMonitoring(threshold = 150)
+
+        assertNull(restarted.averageHr)
+        assertNull(restarted.distanceMeters)
+        assertFalse(restarted.isDistanceTrackingEnabled)
+    }
+
+    @Test
+    fun `clear selected device resets distance state`() {
+        val cleared = MonitoringSessionState(
+            isMonitoring = true,
+            connectionState = ConnectionState.Monitoring,
+            distanceMeters = 2_145.0,
+            isDistanceTrackingEnabled = true,
+            averageHr = 141,
+            threshold = 150,
+            deviceName = "Polar H10",
+            deviceAddress = "AA:BB",
+        ).clearSelectedDevice()
+
+        assertFalse(cleared.isMonitoring)
+        assertEquals(ConnectionState.Idle, cleared.connectionState)
+        assertNull(cleared.distanceMeters)
+        assertFalse(cleared.isDistanceTrackingEnabled)
+        assertNull(cleared.averageHr)
+        assertNull(cleared.threshold)
     }
 }
