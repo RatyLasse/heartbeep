@@ -10,14 +10,13 @@ class AlarmDecider(
         currentHr: Int,
         threshold: Int,
         nowElapsedMs: Long,
-        rrIntervalMs: Float? = null,
     ): Boolean {
         if (currentHr <= threshold) {
             lastAlarmAtMs = null
             return false
         }
 
-        val intervalMs = (rrIntervalMs?.toLong() ?: bpmToIntervalMs(currentHr))
+        val intervalMs = bpmToIntervalMs(currentHr)
             .coerceIn(minimumIntervalMs, maximumIntervalMs)
 
         val previous = lastAlarmAtMs

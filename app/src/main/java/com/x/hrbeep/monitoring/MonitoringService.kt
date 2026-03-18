@@ -150,12 +150,10 @@ class MonitoringService : Service() {
                         )
                     }
 
-                    val rrIntervalMs = sample.rrIntervalsMs.lastOrNull()
                     if (alarmDecider.shouldBeep(
                             currentHr = sample.bpm,
                             threshold = threshold,
                             nowElapsedMs = sample.receivedAtElapsedMs,
-                            rrIntervalMs = rrIntervalMs,
                         )
                     ) {
                         withContext(Dispatchers.Default) {

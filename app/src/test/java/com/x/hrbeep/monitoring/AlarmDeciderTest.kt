@@ -22,41 +22,20 @@ class AlarmDeciderTest {
     }
 
     @Test
+    fun `uses current bpm cadence even when it differs from the threshold`() {
+        val decider = AlarmDecider(minimumIntervalMs = 300L, maximumIntervalMs = 2_000L)
+
+        assertTrue(decider.shouldBeep(currentHr = 150, threshold = 145, nowElapsedMs = 100L))
+        assertFalse(decider.shouldBeep(currentHr = 150, threshold = 145, nowElapsedMs = 450L))
+        assertTrue(decider.shouldBeep(currentHr = 150, threshold = 145, nowElapsedMs = 500L))
+    }
+
+    @Test
     fun `resets once heart rate drops back below threshold`() {
         val decider = AlarmDecider(minimumIntervalMs = 300L, maximumIntervalMs = 2_000L)
 
         assertTrue(decider.shouldBeep(currentHr = 151, threshold = 150, nowElapsedMs = 100L))
         assertFalse(decider.shouldBeep(currentHr = 149, threshold = 150, nowElapsedMs = 500L))
         assertTrue(decider.shouldBeep(currentHr = 151, threshold = 150, nowElapsedMs = 600L))
-    }
-
-    @Test
-    fun `uses rr interval cadence when available`() {
-        val decider = AlarmDecider(minimumIntervalMs = 300L, maximumIntervalMs = 2_000L)
-
-        assertTrue(
-            decider.shouldBeep(
-                currentHr = 160,
-                threshold = 140,
-                nowElapsedMs = 100L,
-                rrIntervalMs = 1_000f,
-            )
-        )
-        assertFalse(
-            decider.shouldBeep(
-                currentHr = 160,
-                threshold = 140,
-                nowElapsedMs = 900L,
-                rrIntervalMs = 1_000f,
-            )
-        )
-        assertTrue(
-            decider.shouldBeep(
-                currentHr = 160,
-                threshold = 140,
-                nowElapsedMs = 1_100L,
-                rrIntervalMs = 1_000f,
-            )
-        )
     }
 }
