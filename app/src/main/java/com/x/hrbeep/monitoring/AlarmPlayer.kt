@@ -17,12 +17,15 @@ class AlarmPlayer(
     context: Context,
 ) {
     private companion object {
+        const val TONE_CODE = ToneGenerator.TONE_CDMA_PIP
+        const val TONE_DURATION_MS = 110
+        const val BASE_VOLUME = 100
         const val EXTRA_DUCK_MS = 350L
     }
 
     private val audioManager = context.getSystemService(AudioManager::class.java)
-    private val generators = mutableMapOf<AlarmSoundStyle, ToneGenerator>()
-    private val generatorVolumes = mutableMapOf<AlarmSoundStyle, Int>()
+    private var generator: ToneGenerator? = null
+    private var generatorVolume: Int? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var abandonFocusJob: Job? = null
     private var persistentDucking = false
@@ -44,26 +47,25 @@ class AlarmPlayer(
         }
 
     @Synchronized
-    fun beep(style: AlarmSoundStyle, intensity: Int) {
+    fun beep(intensity: Int) {
         val clampedIntensity = intensity.coerceIn(0, 100)
-        val effectiveVolume = (style.volume * (clampedIntensity / 100f))
+        val effectiveVolume = (BASE_VOLUME * (clampedIntensity / 100f))
             .toInt()
             .coerceIn(0, 100)
         if (!persistentDucking) {
-            requestTransientAudioFocus(style.durationMs)
+            requestTransientAudioFocus(TONE_DURATION_MS)
         }
 
-        val generator = generators[style]
-        val activeGenerator = if (generator != null && generatorVolumes[style] == effectiveVolume) {
-            generator
+        val activeGenerator = if (generator != null && generatorVolume == effectiveVolume) {
+            generator!!
         } else {
             generator?.release()
             ToneGenerator(AudioManager.STREAM_MUSIC, effectiveVolume).also {
-                generators[style] = it
-                generatorVolumes[style] = effectiveVolume
+                generator = it
+                generatorVolume = effectiveVolume
             }
         }
-        activeGenerator.startTone(style.toneCode, style.durationMs)
+        activeGenerator.startTone(TONE_CODE, TONE_DURATION_MS)
     }
 
     @Synchronized
@@ -88,9 +90,9 @@ class AlarmPlayer(
         persistentDucking = false
         abandonFocusJob?.cancel()
         abandonAudioFocus()
-        generators.values.forEach(ToneGenerator::release)
-        generators.clear()
-        generatorVolumes.clear()
+        generator?.release()
+        generator = null
+        generatorVolume = null
     }
 
     private fun requestTransientAudioFocus(durationMs: Int) {

@@ -51,7 +51,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.x.hrbeep.data.BleDeviceCandidate
-import com.x.hrbeep.monitoring.AlarmSoundStyle
 import com.x.hrbeep.monitoring.ConnectionState
 import com.x.hrbeep.ui.theme.HrBeepTheme
 
@@ -126,7 +125,6 @@ class MainActivity : ComponentActivity() {
                             onThresholdChange = viewModel::onThresholdInputChanged,
                             onScan = viewModel::scanForDevices,
                             onSelectDevice = viewModel::selectDevice,
-                            onSelectSoundStyle = viewModel::selectSoundStyle,
                             onSoundIntensityChange = viewModel::updateSoundIntensity,
                             onStartMonitoring = viewModel::startMonitoring,
                             onStopMonitoring = viewModel::stopMonitoring,
@@ -156,7 +154,6 @@ private fun MainScreen(
     onThresholdChange: (String) -> Unit,
     onScan: () -> Unit,
     onSelectDevice: (String) -> Unit,
-    onSelectSoundStyle: (AlarmSoundStyle) -> Unit,
     onSoundIntensityChange: (Float) -> Unit,
     onStartMonitoring: () -> Unit,
     onStopMonitoring: () -> Unit,
@@ -200,45 +197,20 @@ private fun MainScreen(
                         enabled = hasAllPermissions && uiState.bluetoothEnabled,
                     )
 
-                    Row(
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Text("Limit", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                OutlinedTextField(
-                                    value = uiState.thresholdInput,
-                                    onValueChange = onThresholdChange,
-                                    modifier = Modifier.width(112.dp),
-                                    label = { Text("bpm") },
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    singleLine = true,
-                                )
-                            }
-                        }
-
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Text("Sound", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                SoundOptionChip(
-                                    style = AlarmSoundStyle.Bright,
-                                    selected = uiState.selectedSoundStyle == AlarmSoundStyle.Bright,
-                                    onClick = { onSelectSoundStyle(AlarmSoundStyle.Bright) },
-                                )
-                                SoundOptionChip(
-                                    style = AlarmSoundStyle.Pulse,
-                                    selected = uiState.selectedSoundStyle == AlarmSoundStyle.Pulse,
-                                    onClick = { onSelectSoundStyle(AlarmSoundStyle.Pulse) },
-                                )
-                            }
+                        Text("Limit", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            OutlinedTextField(
+                                value = uiState.thresholdInput,
+                                onValueChange = onThresholdChange,
+                                modifier = Modifier.width(112.dp),
+                                label = { Text("bpm") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                            )
                         }
                     }
 
@@ -305,30 +277,6 @@ private fun MainScreen(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun SoundOptionChip(
-    style: AlarmSoundStyle,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .clickable(onClick = onClick)
-            .background(
-                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                shape = MaterialTheme.shapes.medium,
-            )
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = style.displayName,
-            fontWeight = FontWeight.Medium,
-            color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 

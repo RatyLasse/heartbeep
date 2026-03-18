@@ -9,8 +9,6 @@ import androidx.lifecycle.viewModelScope
 import com.x.hrbeep.data.BleDeviceCandidate
 import com.x.hrbeep.data.BleHeartRateRepository
 import com.x.hrbeep.data.ThresholdRepository
-import com.x.hrbeep.monitoring.AlarmPlayer
-import com.x.hrbeep.monitoring.AlarmSoundStyle
 import com.x.hrbeep.monitoring.ConnectionState
 import com.x.hrbeep.monitoring.MonitoringController
 import com.x.hrbeep.monitoring.MonitoringService
@@ -26,7 +24,6 @@ import kotlinx.coroutines.launch
 data class MainUiState(
     val thresholdInput: String = ThresholdRepository.DEFAULT_THRESHOLD_BPM.toString(),
     val persistedThreshold: Int = ThresholdRepository.DEFAULT_THRESHOLD_BPM,
-    val selectedSoundStyle: AlarmSoundStyle = AlarmSoundStyle.default,
     val soundIntensity: Int = ThresholdRepository.DEFAULT_SOUND_INTENSITY,
     val bluetoothEnabled: Boolean = false,
     val availableDevices: List<BleDeviceCandidate> = emptyList(),
@@ -43,7 +40,6 @@ class MainViewModel(
     private val bleHeartRateRepository: BleHeartRateRepository = container.bleHeartRateRepository
     private val thresholdRepository: ThresholdRepository = container.thresholdRepository
     private val monitoringController: MonitoringController = container.monitoringController
-    private val alarmPlayer: AlarmPlayer = container.alarmPlayer
 
     private val _uiState = MutableStateFlow(
         MainUiState(bluetoothEnabled = bleHeartRateRepository.isBluetoothEnabled())
@@ -61,14 +57,6 @@ class MainViewModel(
                         persistedThreshold = threshold,
                         thresholdInput = threshold.toString(),
                     )
-                }
-            }
-        }
-
-        viewModelScope.launch {
-            thresholdRepository.soundStyleFlow.collect { soundStyle ->
-                _uiState.update { state ->
-                    state.copy(selectedSoundStyle = soundStyle)
                 }
             }
         }
@@ -109,13 +97,6 @@ class MainViewModel(
 
     fun dismissMessage() {
         _uiState.update { state -> state.copy(message = null) }
-    }
-
-    fun selectSoundStyle(style: AlarmSoundStyle) {
-        alarmPlayer.beep(style, _uiState.value.soundIntensity)
-        viewModelScope.launch {
-            thresholdRepository.saveSoundStyle(style)
-        }
     }
 
     fun updateSoundIntensity(value: Float) {
@@ -225,7 +206,6 @@ class MainViewModel(
                     deviceAddress = selectedDevice.address,
                     deviceName = selectedDevice.name,
                     threshold = threshold,
-                    soundStyle = currentState.selectedSoundStyle,
                     soundIntensity = currentState.soundIntensity,
                 )
                 ContextCompat.startForegroundService(context, intent)

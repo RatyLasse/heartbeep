@@ -34,7 +34,6 @@ class MonitoringService : Service() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var monitoringJob: Job? = null
     private var settingsJob: Job? = null
-    private var currentSoundStyle: AlarmSoundStyle = AlarmSoundStyle.default
     private var currentSoundIntensity: Int = ThresholdRepository.DEFAULT_SOUND_INTENSITY
 
     override fun onCreate() {
@@ -47,11 +46,6 @@ class MonitoringService : Service() {
         createNotificationChannel()
 
         settingsJob = serviceScope.launch {
-            thresholdRepository.soundStyleFlow.collect { soundStyle ->
-                currentSoundStyle = soundStyle
-            }
-        }
-        serviceScope.launch {
             thresholdRepository.soundIntensityFlow.collect { intensity ->
                 currentSoundIntensity = intensity
             }
@@ -65,15 +59,11 @@ class MonitoringService : Service() {
                 val deviceName = intent.getStringExtra(EXTRA_DEVICE_NAME)
                 val threshold = intent.getIntExtra(EXTRA_THRESHOLD, -1)
                 val soundIntensity = intent.getIntExtra(EXTRA_SOUND_INTENSITY, 80)
-                val soundStyle = AlarmSoundStyle.fromStorageValue(
-                    intent.getStringExtra(EXTRA_SOUND_STYLE)
-                )
-                currentSoundStyle = soundStyle
                 currentSoundIntensity = soundIntensity
                 if (deviceAddress.isNullOrBlank() || threshold <= 0) {
                     stopMonitoring("Missing device or threshold.")
                 } else {
-                    startMonitoring(deviceAddress, deviceName, threshold, soundStyle, soundIntensity)
+                    startMonitoring(deviceAddress, deviceName, threshold)
                 }
                 START_STICKY
             }
@@ -100,8 +90,6 @@ class MonitoringService : Service() {
         deviceAddress: String,
         deviceName: String?,
         threshold: Int,
-        soundStyle: AlarmSoundStyle,
-        soundIntensity: Int,
     ) {
         monitoringJob?.cancel()
         alarmPlayer.setPersistentDucking(false)
@@ -157,7 +145,7 @@ class MonitoringService : Service() {
                         )
                     ) {
                         withContext(Dispatchers.Default) {
-                            alarmPlayer.beep(currentSoundStyle, currentSoundIntensity)
+                            alarmPlayer.beep(currentSoundIntensity)
                         }
                     }
 
@@ -277,7 +265,6 @@ class MonitoringService : Service() {
         private const val EXTRA_DEVICE_ADDRESS = "extra_device_address"
         private const val EXTRA_DEVICE_NAME = "extra_device_name"
         private const val EXTRA_THRESHOLD = "extra_threshold"
-        private const val EXTRA_SOUND_STYLE = "extra_sound_style"
         private const val EXTRA_SOUND_INTENSITY = "extra_sound_intensity"
 
         fun startIntent(
@@ -285,14 +272,12 @@ class MonitoringService : Service() {
             deviceAddress: String,
             deviceName: String,
             threshold: Int,
-            soundStyle: AlarmSoundStyle,
             soundIntensity: Int,
         ): Intent = Intent(context, MonitoringService::class.java).apply {
             action = ACTION_START
             putExtra(EXTRA_DEVICE_ADDRESS, deviceAddress)
             putExtra(EXTRA_DEVICE_NAME, deviceName)
             putExtra(EXTRA_THRESHOLD, threshold)
-            putExtra(EXTRA_SOUND_STYLE, soundStyle.storageValue)
             putExtra(EXTRA_SOUND_INTENSITY, soundIntensity)
         }
 

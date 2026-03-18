@@ -2,10 +2,8 @@ package com.x.hrbeep.data
 
 import android.content.Context
 import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
-import com.x.hrbeep.monitoring.AlarmSoundStyle
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -18,10 +16,6 @@ class ThresholdRepository(
         preferences[KEY_THRESHOLD] ?: DEFAULT_THRESHOLD_BPM
     }
 
-    val soundStyleFlow: Flow<AlarmSoundStyle> = context.settingsDataStore.data.map { preferences ->
-        AlarmSoundStyle.fromStorageValue(preferences[KEY_SOUND_STYLE])
-    }
-
     val soundIntensityFlow: Flow<Int> = context.settingsDataStore.data.map { preferences ->
         preferences[KEY_SOUND_INTENSITY] ?: DEFAULT_SOUND_INTENSITY
     }
@@ -29,12 +23,6 @@ class ThresholdRepository(
     suspend fun saveThreshold(value: Int) {
         context.settingsDataStore.edit { preferences ->
             preferences[KEY_THRESHOLD] = value
-        }
-    }
-
-    suspend fun saveSoundStyle(style: AlarmSoundStyle) {
-        context.settingsDataStore.edit { preferences ->
-            preferences[KEY_SOUND_STYLE] = style.storageValue
         }
     }
 
@@ -48,7 +36,6 @@ class ThresholdRepository(
         const val DEFAULT_THRESHOLD_BPM = 140
         const val DEFAULT_SOUND_INTENSITY = 80
         private val KEY_THRESHOLD = intPreferencesKey("threshold_bpm")
-        private val KEY_SOUND_STYLE = stringPreferencesKey("sound_style")
         private val KEY_SOUND_INTENSITY = intPreferencesKey("sound_intensity")
     }
 }
