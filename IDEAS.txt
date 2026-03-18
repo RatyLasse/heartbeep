@@ -1,10 +1,12 @@
 - Ask AI for further dev ideas and implement the best.
 - Keep the app simple.
 - Add optional lower HR bound.
-- Add optional distance (km) tracker and notify after each km run.
-    - This is automatically enabled if GPS is activated.
+- Add optional distance (km) tracker
+    - Based on phone GPS data.
+    - Automatically enabled if GPS is activated.
     - If GPS is off or user does not give permission, default to only HR functionality.
-    - Also show the current distance in UI when tracking (e.g. 3.6km)
+    - Audio notification after each km (e.g. 1 kilometer, 2 kilometers, 3 kilometers etc.)
+    - Show the current distance in UI when tracking (e.g. 3.62km)
         - As with average hr of the previous session, the distance of the previous session also should remain visible when stopping tracking
 - Add a second "card" view which you can view by swiping right.
     - This view contains history data of previous tracked sessions
