@@ -4,34 +4,32 @@ import com.x.hrbeep.data.HeartRateMonitorUpdate
 import com.x.hrbeep.data.HeartRateSample
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
 import org.junit.Test
 
 class MonitoringSessionStateTest {
     @Test
-    fun `end monitoring keeps the last session average visible`() {
-        val stopped = MonitoringSessionState(
-            isMonitoring = true,
-            connectionState = ConnectionState.Monitoring,
+    fun `begin monitoring keeps an existing sensor connection`() {
+        val monitoring = MonitoringSessionState(
+            connectionState = ConnectionState.Connected,
             currentHr = 156,
-            averageHr = 149,
             batteryLevelPercent = 82,
-            threshold = 150,
             deviceName = "Polar H10",
             deviceAddress = "AA:BB",
-        ).endMonitoring()
+        ).beginMonitoring(threshold = 150)
 
-        assertFalse(stopped.isMonitoring)
-        assertEquals(ConnectionState.Idle, stopped.connectionState)
-        assertEquals(149, stopped.averageHr)
-        assertNull(stopped.currentHr)
-        assertNull(stopped.threshold)
-        assertNull(stopped.deviceName)
-        assertNull(stopped.deviceAddress)
+        assertTrue(monitoring.isMonitoring)
+        assertEquals(ConnectionState.Monitoring, monitoring.connectionState)
+        assertEquals(156, monitoring.currentHr)
+        assertEquals(82, monitoring.batteryLevelPercent)
+        assertEquals(150, monitoring.threshold)
+        assertEquals("Polar H10", monitoring.deviceName)
+        assertEquals("AA:BB", monitoring.deviceAddress)
     }
 
     @Test
-    fun `stop then preview keeps the previous monitoring average`() {
+    fun `end monitoring keeps the connection alive`() {
         val stopped = MonitoringSessionState(
             isMonitoring = true,
             connectionState = ConnectionState.Monitoring,
@@ -43,39 +41,48 @@ class MonitoringSessionStateTest {
             deviceAddress = "AA:BB",
         ).endMonitoring()
 
-        val previewState = stopped.beginPreview(
+        assertFalse(stopped.isMonitoring)
+        assertEquals(ConnectionState.Connected, stopped.connectionState)
+        assertEquals(156, stopped.currentHr)
+        assertEquals(148, stopped.averageHr)
+        assertEquals(76, stopped.batteryLevelPercent)
+        assertNull(stopped.threshold)
+        assertEquals("Polar H10", stopped.deviceName)
+        assertEquals("AA:BB", stopped.deviceAddress)
+    }
+
+    @Test
+    fun `connection updates keep monitoring state active`() {
+        val updated = MonitoringSessionState(
+            isMonitoring = true,
+            connectionState = ConnectionState.Connecting,
+            threshold = 150,
             deviceName = "Polar H10",
             deviceAddress = "AA:BB",
-        )
-
-        val connected = previewState.withPreviewUpdate(
+        ).onConnectionUpdate(
             deviceName = "Polar H10",
             deviceAddress = "AA:BB",
             update = HeartRateMonitorUpdate(
                 heartRateSample = HeartRateSample(
-                    bpm = 154,
+                    bpm = 151,
                     rrIntervalsMs = emptyList(),
                     contactDetected = true,
                     receivedAtElapsedMs = 1L,
                 ),
-                batteryLevelPercent = 75,
+                batteryLevelPercent = 68,
             ),
         )
 
-        val cleared = connected.clearPreview()
-
-        assertEquals(ConnectionState.Connected, connected.connectionState)
-        assertEquals(154, connected.currentHr)
-        assertEquals(148, connected.averageHr)
-        assertEquals(75, connected.batteryLevelPercent)
-        assertEquals(148, cleared.averageHr)
-        assertNull(cleared.currentHr)
-        assertNull(cleared.deviceAddress)
+        assertTrue(updated.isMonitoring)
+        assertEquals(ConnectionState.Monitoring, updated.connectionState)
+        assertEquals(151, updated.currentHr)
+        assertEquals(68, updated.batteryLevelPercent)
+        assertEquals(150, updated.threshold)
     }
 
     @Test
-    fun `end monitoring disconnected marks the disconnected state`() {
-        val stopped = MonitoringSessionState(
+    fun `connection loss keeps monitoring active until manually stopped`() {
+        val disconnected = MonitoringSessionState(
             isMonitoring = true,
             connectionState = ConnectionState.Monitoring,
             currentHr = 151,
@@ -84,12 +91,12 @@ class MonitoringSessionStateTest {
             threshold = 150,
             deviceName = "Polar H10",
             deviceAddress = "AA:BB",
-        ).endMonitoringDisconnected("Heart-rate strap disconnected.")
+        ).onConnectionLost("Heart-rate strap disconnected.")
 
-        assertFalse(stopped.isMonitoring)
-        assertEquals(ConnectionState.Disconnected, stopped.connectionState)
-        assertEquals("Heart-rate strap disconnected.", stopped.errorMessage)
-        assertEquals(151, stopped.currentHr)
-        assertEquals(144, stopped.averageHr)
+        assertTrue(disconnected.isMonitoring)
+        assertEquals(ConnectionState.Disconnected, disconnected.connectionState)
+        assertEquals("Heart-rate strap disconnected.", disconnected.errorMessage)
+        assertNull(disconnected.currentHr)
+        assertEquals(144, disconnected.averageHr)
     }
 }

@@ -22,116 +22,75 @@ data class MonitoringSessionState(
     val deviceAddress: String? = null,
     val errorMessage: String? = null,
 ) {
-    private fun endMonitoringWithFailure(
-        connectionState: ConnectionState,
-        errorMessage: String,
-    ): MonitoringSessionState = copy(
-        isMonitoring = false,
-        connectionState = connectionState,
-        errorMessage = errorMessage,
-    )
-
     fun beginMonitoring(
-        deviceName: String,
-        deviceAddress: String,
         threshold: Int,
     ): MonitoringSessionState = copy(
         isMonitoring = true,
-        connectionState = ConnectionState.Connecting,
-        currentHr = null,
         averageHr = null,
-        batteryLevelPercent = null,
         threshold = threshold,
-        deviceName = deviceName,
-        deviceAddress = deviceAddress,
         errorMessage = null,
+        connectionState = when (connectionState) {
+            ConnectionState.Connected,
+            ConnectionState.Monitoring,
+            -> ConnectionState.Monitoring
+
+            else -> connectionState
+        },
     )
 
-    fun withMonitoringBatteryLevel(batteryLevelPercent: Int?): MonitoringSessionState = copy(
-        isMonitoring = true,
-        batteryLevelPercent = batteryLevelPercent ?: this.batteryLevelPercent,
-        errorMessage = null,
-    )
-
-    fun withMonitoringSample(
-        currentHr: Int,
+    fun updateMonitoringAverage(
         averageHr: Int,
-        threshold: Int,
-        batteryLevelPercent: Int?,
     ): MonitoringSessionState = copy(
-        isMonitoring = true,
-        connectionState = ConnectionState.Monitoring,
-        currentHr = currentHr,
         averageHr = averageHr,
-        batteryLevelPercent = batteryLevelPercent ?: this.batteryLevelPercent,
-        threshold = threshold,
-        errorMessage = null,
     )
 
-    fun endMonitoring(errorMessage: String? = null): MonitoringSessionState =
-        if (errorMessage == null) {
-            copy(
-                isMonitoring = false,
-                connectionState = ConnectionState.Idle,
-                currentHr = null,
-                threshold = null,
-                deviceName = null,
-                deviceAddress = null,
-                errorMessage = null,
-            )
-        } else {
-            endMonitoringWithFailure(
-                connectionState = ConnectionState.Error,
-                errorMessage = errorMessage,
-            )
-        }
+    fun endMonitoring(): MonitoringSessionState = copy(
+        isMonitoring = false,
+        threshold = null,
+        errorMessage = null,
+        connectionState = when (connectionState) {
+            ConnectionState.Monitoring -> ConnectionState.Connected
+            else -> connectionState
+        },
+    )
 
-    fun endMonitoringDisconnected(errorMessage: String): MonitoringSessionState =
-        endMonitoringWithFailure(
-            connectionState = ConnectionState.Disconnected,
-            errorMessage = errorMessage,
-        )
-
-    fun beginPreview(
+    fun onConnectionAttempt(
         deviceName: String,
         deviceAddress: String,
     ): MonitoringSessionState = copy(
         connectionState = ConnectionState.Connecting,
-        currentHr = null,
         batteryLevelPercent = batteryLevelPercent.takeIf { this.deviceAddress == deviceAddress },
-        threshold = null,
+        currentHr = null,
         deviceName = deviceName,
         deviceAddress = deviceAddress,
         errorMessage = null,
     )
 
-    fun withPreviewUpdate(
+    fun onConnectionUpdate(
         deviceName: String,
         deviceAddress: String,
         update: HeartRateMonitorUpdate,
     ): MonitoringSessionState = copy(
         connectionState = if (update.heartRateSample != null) {
-            ConnectionState.Connected
+            if (isMonitoring) ConnectionState.Monitoring else ConnectionState.Connected
         } else {
             connectionState
         },
         currentHr = update.heartRateSample?.bpm ?: currentHr,
         batteryLevelPercent = update.batteryLevelPercent ?: batteryLevelPercent,
-        threshold = null,
         deviceName = deviceName,
         deviceAddress = deviceAddress,
         errorMessage = null,
     )
 
-    fun withPreviewError(errorMessage: String): MonitoringSessionState = copy(
-        connectionState = ConnectionState.Error,
+    fun onConnectionLost(errorMessage: String): MonitoringSessionState = copy(
+        connectionState = ConnectionState.Disconnected,
         currentHr = null,
-        batteryLevelPercent = null,
-        threshold = null,
         errorMessage = errorMessage,
     )
 
-    fun clearPreview(): MonitoringSessionState = copy(
+    fun clearSelectedDevice(): MonitoringSessionState = copy(
+        isMonitoring = false,
         connectionState = ConnectionState.Idle,
         currentHr = null,
         batteryLevelPercent = null,

@@ -194,7 +194,9 @@ private fun MainScreen(
                         uiState = uiState,
                         onScan = onScan,
                         onSelectDevice = onSelectDevice,
-                        enabled = hasAllPermissions && uiState.bluetoothEnabled,
+                        enabled = hasAllPermissions &&
+                            uiState.bluetoothEnabled &&
+                            !uiState.monitoringState.isMonitoring,
                     )
 
                     Column(

@@ -13,20 +13,18 @@ import androidx.core.app.ServiceCompat
 import com.x.hrbeep.HrBeepApplication
 import com.x.hrbeep.MainActivity
 import com.x.hrbeep.R
-import com.x.hrbeep.data.BleHeartRateRepository
 import com.x.hrbeep.data.ThresholdRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class MonitoringService : Service() {
-    private lateinit var bleHeartRateRepository: BleHeartRateRepository
+    private lateinit var heartRateConnectionManager: HeartRateConnectionManager
     private lateinit var thresholdRepository: ThresholdRepository
     private lateinit var monitoringController: MonitoringController
     private lateinit var alarmPlayer: AlarmPlayer
@@ -39,7 +37,7 @@ class MonitoringService : Service() {
     override fun onCreate() {
         super.onCreate()
         val container = (application as HrBeepApplication).appContainer
-        bleHeartRateRepository = container.bleHeartRateRepository
+        heartRateConnectionManager = container.heartRateConnectionManager
         thresholdRepository = container.thresholdRepository
         monitoringController = container.monitoringController
         alarmPlayer = container.alarmPlayer
@@ -94,95 +92,103 @@ class MonitoringService : Service() {
     ) {
         monitoringJob?.cancel()
         alarmPlayer.setPersistentDucking(false)
-
-        monitoringController.update {
-            it.beginMonitoring(
-                deviceName = deviceName ?: deviceAddress,
-                deviceAddress = deviceAddress,
-                threshold = threshold,
-            )
-        }
+        heartRateConnectionManager.observeDevice(
+            deviceName = deviceName ?: deviceAddress,
+            deviceAddress = deviceAddress,
+        )
+        monitoringController.beginMonitoring(threshold)
 
         startForegroundWithState(
-            contentText = getString(R.string.notification_connecting),
+            contentText = notificationContentText(
+                monitoringState = monitoringController.state.value,
+                threshold = threshold,
+            ),
             threshold = threshold,
         )
 
         val alarmDecider = AlarmDecider()
-        val audioAlertTracker = SensorConnectionAudioAlertTracker().apply { onMonitoringStarted() }
+        val audioAlertTracker = SensorConnectionAudioAlertTracker().apply {
+            onMonitoringStarted(hasLiveHeartRate = monitoringController.state.value.currentHr != null)
+        }
         val hrSamples = mutableListOf<Int>()
 
         monitoringJob = serviceScope.launch {
-            bleHeartRateRepository.observeHeartRateMonitor(deviceAddress)
-                .catch { throwable ->
-                    audioAlertTracker.onMonitoringFailure()?.let { alert ->
-                        announceAudioAlert(alert)
-                    }
-                    stopMonitoring(
-                        errorMessage = throwable.message ?: "Monitoring failed.",
-                        disconnected = audioAlertTracker.hasSeenLiveHeartRate,
-                    )
-                }
-                .collect { update ->
-                    audioAlertTracker.onMonitorUpdate(update)?.let { alert ->
-                        announceAudioAlert(alert)
-                    }
-                    val sample = update.heartRateSample
-                    if (sample == null) {
-                        monitoringController.update { state ->
-                            state.withMonitoringBatteryLevel(update.batteryLevelPercent)
+            heartRateConnectionManager.events.collect { event ->
+                when (event) {
+                    is HeartRateConnectionEvent.ConnectionLost -> {
+                        if (event.deviceAddress != deviceAddress) {
+                            return@collect
                         }
-                        return@collect
-                    }
 
-                    hrSamples.add(sample.bpm)
-                    val averageHr = hrSamples.average().toInt()
-
-                    val isAboveThreshold = sample.bpm > threshold
-                    alarmPlayer.setPersistentDucking(isAboveThreshold)
-
-                    monitoringController.update { state ->
-                        state.withMonitoringSample(
-                            currentHr = sample.bpm,
-                            averageHr = averageHr,
+                        alarmPlayer.setPersistentDucking(false)
+                        audioAlertTracker.onMonitoringFailure()?.let { alert ->
+                            announceAudioAlert(alert)
+                        }
+                        updateForegroundNotification(
+                            contentText = event.errorMessage,
                             threshold = threshold,
-                            batteryLevelPercent = update.batteryLevelPercent,
                         )
                     }
 
-                    if (alarmDecider.shouldBeep(
-                            currentHr = sample.bpm,
-                            threshold = threshold,
-                            nowElapsedMs = sample.receivedAtElapsedMs,
-                        )
-                    ) {
-                        withContext(Dispatchers.Default) {
-                            alarmPlayer.beep(currentSoundIntensity)
+                    is HeartRateConnectionEvent.Update -> {
+                        if (event.deviceAddress != deviceAddress) {
+                            return@collect
                         }
-                    }
 
-                    updateForegroundNotification(
-                        contentText = "HR ${sample.bpm} bpm (avg: $averageHr bpm) | limit $threshold bpm",
-                        threshold = threshold,
-                    )
+                        val update = event.update
+                        audioAlertTracker.onMonitorUpdate(update)?.let { alert ->
+                            announceAudioAlert(alert)
+                        }
+
+                        val sample = update.heartRateSample
+                        if (sample == null) {
+                            updateForegroundNotification(
+                                contentText = notificationContentText(
+                                    monitoringState = monitoringController.state.value,
+                                    threshold = threshold,
+                                ),
+                                threshold = threshold,
+                            )
+                            return@collect
+                        }
+
+                        hrSamples.add(sample.bpm)
+                        val averageHr = hrSamples.average().toInt()
+                        val isAboveThreshold = sample.bpm > threshold
+                        alarmPlayer.setPersistentDucking(isAboveThreshold)
+                        monitoringController.updateMonitoringAverage(averageHr)
+
+                        if (alarmDecider.shouldBeep(
+                                currentHr = sample.bpm,
+                                threshold = threshold,
+                                nowElapsedMs = sample.receivedAtElapsedMs,
+                            )
+                        ) {
+                            withContext(Dispatchers.Default) {
+                                alarmPlayer.beep(currentSoundIntensity)
+                            }
+                        }
+
+                        updateForegroundNotification(
+                            contentText = notificationContentText(
+                                monitoringState = monitoringController.state.value,
+                                threshold = threshold,
+                            ),
+                            threshold = threshold,
+                        )
+                    }
                 }
+            }
         }
     }
 
-    private fun stopMonitoring(
-        errorMessage: String? = null,
-        disconnected: Boolean = false,
-    ) {
+    private fun stopMonitoring(errorMessage: String? = null) {
         monitoringJob?.cancel()
         monitoringJob = null
         alarmPlayer.setPersistentDucking(false)
 
-        monitoringController.update {
-            when {
-                errorMessage == null -> it.endMonitoring()
-                disconnected -> it.endMonitoringDisconnected(errorMessage)
-                else -> it.endMonitoring(errorMessage)
-            }
+        if (errorMessage == null) {
+            monitoringController.endMonitoring()
         }
 
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -214,6 +220,20 @@ class MonitoringService : Service() {
             NOTIFICATION_ID,
             buildNotification(contentText = contentText, threshold = threshold),
         )
+    }
+
+    private fun notificationContentText(
+        monitoringState: MonitoringSessionState,
+        threshold: Int,
+    ): String = when (monitoringState.connectionState) {
+        ConnectionState.Monitoring -> {
+            val currentHr = monitoringState.currentHr ?: return "Waiting for heart-rate data | limit $threshold bpm"
+            val averageHr = monitoringState.averageHr?.let { " (avg: $it bpm)" }.orEmpty()
+            "HR $currentHr bpm$averageHr | limit $threshold bpm"
+        }
+
+        ConnectionState.Disconnected -> monitoringState.errorMessage ?: "Sensor disconnected."
+        else -> "Waiting for heart-rate data | limit $threshold bpm"
     }
 
     private fun buildNotification(contentText: String, threshold: Int): Notification {

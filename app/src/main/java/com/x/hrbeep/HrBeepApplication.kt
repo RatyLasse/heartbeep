@@ -4,6 +4,7 @@ import android.app.Application
 import com.x.hrbeep.data.BleHeartRateRepository
 import com.x.hrbeep.data.ThresholdRepository
 import com.x.hrbeep.monitoring.AlarmPlayer
+import com.x.hrbeep.monitoring.HeartRateConnectionManager
 import com.x.hrbeep.monitoring.MonitoringController
 
 class HrBeepApplication : Application() {
@@ -12,11 +13,17 @@ class HrBeepApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        val monitoringController = MonitoringController()
+        val bleHeartRateRepository = BleHeartRateRepository(this)
         appContainer = AppContainer(
             thresholdRepository = ThresholdRepository(this),
-            bleHeartRateRepository = BleHeartRateRepository(this),
+            bleHeartRateRepository = bleHeartRateRepository,
             alarmPlayer = AlarmPlayer(this),
-            monitoringController = MonitoringController(),
+            monitoringController = monitoringController,
+            heartRateConnectionManager = HeartRateConnectionManager(
+                bleHeartRateRepository = bleHeartRateRepository,
+                monitoringController = monitoringController,
+            ),
         )
     }
 }
@@ -26,4 +33,5 @@ data class AppContainer(
     val bleHeartRateRepository: BleHeartRateRepository,
     val alarmPlayer: AlarmPlayer,
     val monitoringController: MonitoringController,
+    val heartRateConnectionManager: HeartRateConnectionManager,
 )

@@ -6,8 +6,8 @@ class SensorConnectionAudioAlertTracker {
     var hasSeenLiveHeartRate = false
         private set
 
-    fun onMonitoringStarted() {
-        hasSeenLiveHeartRate = false
+    fun onMonitoringStarted(hasLiveHeartRate: Boolean) {
+        hasSeenLiveHeartRate = hasLiveHeartRate
     }
 
     fun onMonitorUpdate(update: HeartRateMonitorUpdate): SessionAudioAlert? {
@@ -21,6 +21,7 @@ class SensorConnectionAudioAlertTracker {
 
     fun onMonitoringFailure(): SessionAudioAlert? =
         if (hasSeenLiveHeartRate) {
+            hasSeenLiveHeartRate = false
             SessionAudioAlert.SensorDisconnected
         } else {
             null
