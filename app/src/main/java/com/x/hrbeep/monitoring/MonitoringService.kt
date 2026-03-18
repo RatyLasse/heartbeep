@@ -177,11 +177,11 @@ class MonitoringService : Service() {
                         ) {
                             alarmPlayer.beep(
                                 intensity = currentSoundIntensity,
-                                profile = when (activeAlertTrigger) {
-                                    AlarmTrigger.BelowLowerBound -> AlarmPlayer.BeepProfile.BelowLowerBound
+                                trigger = when (activeAlertTrigger) {
+                                    AlarmTrigger.BelowLowerBound -> AlarmTrigger.BelowLowerBound
                                     AlarmTrigger.AboveUpperBound,
                                     null,
-                                    -> AlarmPlayer.BeepProfile.AboveUpperBound
+                                    -> AlarmTrigger.AboveUpperBound
                                 },
                             )
                         }

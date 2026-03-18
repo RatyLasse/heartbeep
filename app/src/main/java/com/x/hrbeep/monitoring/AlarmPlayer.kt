@@ -2,9 +2,10 @@ package com.x.hrbeep.monitoring
 
 import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioFormat
 import android.media.AudioFocusRequest
 import android.media.AudioManager
-import android.media.ToneGenerator
+import android.media.AudioTrack
 import android.os.Build
 import android.speech.tts.TextToSpeech
 import kotlinx.coroutines.CoroutineScope
@@ -18,14 +19,7 @@ import java.util.Locale
 class AlarmPlayer(
     context: Context,
 ) {
-    enum class BeepProfile {
-        AboveUpperBound,
-        BelowLowerBound,
-    }
-
     private companion object {
-        const val UPPER_BOUND_TONE_CODE = ToneGenerator.TONE_CDMA_PIP
-        const val LOWER_BOUND_TONE_CODE = ToneGenerator.TONE_CDMA_LOW_L
         const val TONE_DURATION_MS = 110
         const val BASE_VOLUME = 100
         const val EXTRA_DUCK_MS = 350L
@@ -34,8 +28,7 @@ class AlarmPlayer(
 
     private val appContext = context.applicationContext
     private val audioManager = context.getSystemService(AudioManager::class.java)
-    private var generator: ToneGenerator? = null
-    private var generatorVolume: Int? = null
+    private val toneTracks = mutableMapOf<AlarmTrigger, AudioTrack>()
     private var textToSpeech: TextToSpeech? = null
     private var isTextToSpeechReady = false
     private var isInitializingTextToSpeech = false
@@ -58,31 +51,26 @@ class AlarmPlayer(
                 .build()
         } else {
             null
-    }
+        }
 
     @Synchronized
     fun beep(
         intensity: Int,
-        profile: BeepProfile = BeepProfile.AboveUpperBound,
+        trigger: AlarmTrigger = AlarmTrigger.AboveUpperBound,
     ) {
         val clampedIntensity = intensity.coerceIn(0, 100)
-        val effectiveVolume = (BASE_VOLUME * (clampedIntensity / 100f))
-            .toInt()
-            .coerceIn(0, 100)
+        val effectiveVolume = (BASE_VOLUME * (clampedIntensity / 100f)) / BASE_VOLUME.toFloat()
         if (!persistentDucking) {
             requestTransientAudioFocus(TONE_DURATION_MS)
         }
 
-        val activeGenerator = if (generator != null && generatorVolume == effectiveVolume) {
-            generator!!
-        } else {
-            generator?.release()
-            ToneGenerator(AudioManager.STREAM_MUSIC, effectiveVolume).also {
-                generator = it
-                generatorVolume = effectiveVolume
-            }
+        val track = toneTracks.getOrPut(trigger) { buildToneTrack(trigger) }
+        if (track.playState == AudioTrack.PLAYSTATE_PLAYING) {
+            track.stop()
         }
-        activeGenerator.startTone(toneCode(profile), TONE_DURATION_MS)
+        track.setVolume(effectiveVolume)
+        track.setPlaybackHeadPosition(0)
+        track.play()
     }
 
     @Synchronized
@@ -123,9 +111,8 @@ class AlarmPlayer(
         persistentDucking = false
         abandonFocusJob?.cancel()
         abandonAudioFocus()
-        generator?.release()
-        generator = null
-        generatorVolume = null
+        toneTracks.values.forEach(AudioTrack::release)
+        toneTracks.clear()
         pendingSpeech.clear()
         isTextToSpeechReady = false
         isInitializingTextToSpeech = false
@@ -210,8 +197,28 @@ class AlarmPlayer(
         }
     }
 
-    private fun toneCode(profile: BeepProfile): Int = when (profile) {
-        BeepProfile.AboveUpperBound -> UPPER_BOUND_TONE_CODE
-        BeepProfile.BelowLowerBound -> LOWER_BOUND_TONE_CODE
+    private fun buildToneTrack(trigger: AlarmTrigger): AudioTrack {
+        val spec = AlarmTone.specFor(trigger)
+        val samples = AlarmTone.samplesFor(trigger)
+        return AudioTrack.Builder()
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            )
+            .setAudioFormat(
+                AudioFormat.Builder()
+                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                    .setSampleRate(spec.sampleRateHz)
+                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                    .build()
+            )
+            .setTransferMode(AudioTrack.MODE_STATIC)
+            .setBufferSizeInBytes(samples.size * Short.SIZE_BYTES)
+            .build()
+            .also { track ->
+                track.write(samples, 0, samples.size, AudioTrack.WRITE_BLOCKING)
+            }
     }
 }
