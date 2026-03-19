@@ -1,34 +1,55 @@
 # HR Beep
 
-Android app MVP for connecting to a Polar H10 over Bluetooth LE, showing live heart rate,
-and beeping when the current HR exceeds a user-defined limit.
+Android app that connects to a Polar H10 heart rate monitor over Bluetooth LE, displays live heart rate, and beeps when the heart rate crosses user-defined upper or lower thresholds.
 
-## Current status
+## Features
 
-- Kotlin + Jetpack Compose Android app scaffold is in place
-- BLE scan and Heart Rate Measurement subscription are implemented
-- foreground monitoring service and repeating alarm logic are implemented
-- threshold persistence uses DataStore
-- unit tests pass with `./gradlew testDebugUnitTest`
-- debug APK builds with `./gradlew assembleDebug`
+- **Live HR display** — connects to a Polar H10 via BLE and shows current heart rate in real time
+- **Upper limit alarm** — beeps (600 Hz tone) when HR exceeds the configured upper threshold
+- **Lower limit alarm** — beeps (400 Hz tone) when HR drops below an optional lower threshold
+- **Adaptive beep interval** — beeps faster as HR moves further from the threshold (333 ms – 2 s)
+- **Alert intensity control** — slider to set relative alarm volume (0–100%)
+- **GPS distance tracking** — optional distance tracking during sessions with per-kilometre TTS announcements
+- **Session history** — completed sessions are persisted (Room) and browsable in a swipeable history tab; shows start time, duration, average HR, and distance
+- **Battery level** — shows connected device battery percentage
+- **Foreground monitoring service** — monitoring continues while the screen is off
+- **Settings persistence** — thresholds and intensity are saved with DataStore
 
-## Local toolchain
+## Screens
 
-This machine was configured with:
+| Tab | Contents |
+|-----|----------|
+| Monitor | Permission/BT status, device scan, upper/lower limit inputs, intensity slider, large live HR readout, session stats |
+| History | Paginated list of past sessions with delete, empty state when none exist |
 
-- JDK 17 in `~/.local/opt/jdk-17`
-- Android SDK in `~/Android/Sdk`
-- Gradle wrapper in this repo
+## Tech stack
 
-For shell builds, use:
+- Kotlin + Jetpack Compose (Material 3, no XML layouts)
+- Single-Activity MVVM — `ViewModel` + Kotlin `Flow` for UI state
+- Room (session history), DataStore (user preferences)
+- `AudioTrack` with sine-wave synthesis and amplitude envelopes for alarm tones
+- Android BLE GATT for Heart Rate and Battery Service profiles
+- Foreground service with `FOREGROUND_SERVICE_CONNECTED_DEVICE` and optional `FOREGROUND_SERVICE_LOCATION`
+- Min SDK 31 (Android 12), Target SDK 35
+
+## Building
 
 ```bash
 export JAVA_HOME="$HOME/.local/opt/jdk-17"
 export ANDROID_SDK_ROOT="$HOME/Android/Sdk"
-./gradlew testDebugUnitTest assembleDebug
+
+./gradlew testDebugUnitTest      # run unit tests
+./gradlew assembleDebug          # build debug APK
 ```
+
+APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Device testing
 
-The app itself needs to run on Android hardware. Android emulator BLE passthrough is not a
-reliable test path for a Polar H10, so real-device testing should happen on an Android phone.
+BLE passthrough on the Android emulator is unreliable for the Polar H10, so test on a real Android 12+ device. Install via ADB:
+
+```bash
+adb install app/build/outputs/apk/debug/app-debug.apk
+```
+
+Runtime permissions required: `BLUETOOTH_SCAN`, `BLUETOOTH_CONNECT`, `POST_NOTIFICATIONS`, and optionally `ACCESS_FINE_LOCATION` for GPS tracking.
