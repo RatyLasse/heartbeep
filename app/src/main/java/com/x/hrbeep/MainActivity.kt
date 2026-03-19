@@ -32,6 +32,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -71,8 +73,11 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -308,6 +313,7 @@ private fun MonitoringTab(
     onStopMonitoring: () -> Unit,
 ) {
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
     var showGpsDialog by remember { mutableStateOf(false) }
 
     if (showGpsDialog) {
@@ -334,7 +340,11 @@ private fun MonitoringTab(
         )
     }
 
-    Card(modifier = modifier) {
+    Card(
+        modifier = modifier.pointerInput(Unit) {
+            detectTapGestures { focusManager.clearFocus() }
+        },
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -373,7 +383,7 @@ private fun MonitoringTab(
                             onValueChange = onLowerBoundChange,
                             modifier = Modifier.weight(1f),
                             label = { Text("Min BPM (opt.)") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                             singleLine = true,
                         )
                         OutlinedTextField(
@@ -381,7 +391,8 @@ private fun MonitoringTab(
                             onValueChange = onThresholdChange,
                             modifier = Modifier.weight(1f),
                             label = { Text("Max BPM") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                             singleLine = true,
                         )
                     }
