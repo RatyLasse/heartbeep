@@ -1,6 +1,6 @@
 - Ask AI for further dev ideas and implement the best.
-- Rework UI
-- Make it possible to edit the HR range mid-tracking
+- Show undo button for e.g. 3s after session deletion?
+- Come up with a more suitable name for the app
 - Publish on Google Play.
 - If multiple devices are found, ensure we can actually choose from them.
     - Also maybe do not auto-connect but instead the user should choose if more than 1 device is found.
