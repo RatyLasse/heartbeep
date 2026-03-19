@@ -578,8 +578,8 @@ private fun HrGraph(
         drawRect(
             brush = Brush.horizontalGradient(
                 0.15f to Color.Transparent,
-                0.38f to Color.Black,
-                0.62f to Color.Black,
+                0.38f to Color.Black.copy(alpha = 0.80f),
+                0.62f to Color.Black.copy(alpha = 0.80f),
                 0.85f to Color.Transparent,
             ),
             blendMode = BlendMode.DstOut,
