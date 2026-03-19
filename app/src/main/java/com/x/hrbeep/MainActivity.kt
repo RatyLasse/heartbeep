@@ -32,15 +32,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
@@ -49,7 +51,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -72,7 +73,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
@@ -230,7 +231,6 @@ private fun MainScreen(
 
     Column(
         modifier = modifier
-            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -312,7 +312,6 @@ private fun MonitoringTab(
     onStopMonitoring: () -> Unit,
 ) {
     val context = LocalContext.current
-    val focusManager = LocalFocusManager.current
     var showGpsDialog by remember { mutableStateOf(false) }
 
     if (showGpsDialog) {
@@ -340,11 +339,9 @@ private fun MonitoringTab(
     }
 
     Column(
-        modifier = modifier
-            .pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } }
-            .padding(vertical = 8.dp),
-        verticalArrangement = Arrangement.SpaceBetween,
+        modifier = modifier.padding(vertical = 8.dp),
     ) {
+        // Top controls
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             DashboardStatusRow(
                 hasMonitoringPermissions = hasMonitoringPermissions,
@@ -368,26 +365,30 @@ private fun MonitoringTab(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text("Limits", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    OutlinedTextField(
-                        value = uiState.lowerBoundInput,
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    BpmStepper(
+                        label = "Min BPM (opt.)",
+                        inputValue = uiState.lowerBoundInput,
                         onValueChange = onLowerBoundChange,
+                        onDecrement = {
+                            val lb = uiState.persistedLowerBound
+                            if (lb != null) onLowerBoundChange(if (lb <= 20) "" else (lb - 1).toString())
+                        },
+                        onIncrement = {
+                            val lb = uiState.persistedLowerBound
+                            onLowerBoundChange(((lb ?: 39) + 1).coerceAtMost(300).toString())
+                        },
+                        imeAction = ImeAction.Next,
                         modifier = Modifier.weight(1f),
-                        label = { Text("Min BPM (opt.)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
-                        singleLine = true,
                     )
-                    OutlinedTextField(
-                        value = uiState.thresholdInput,
+                    BpmStepper(
+                        label = "Max BPM",
+                        inputValue = uiState.thresholdInput,
                         onValueChange = onThresholdChange,
+                        onDecrement = { onThresholdChange((uiState.persistedThreshold - 1).coerceAtLeast(20).toString()) },
+                        onIncrement = { onThresholdChange((uiState.persistedThreshold + 1).coerceAtMost(300).toString()) },
+                        imeAction = ImeAction.Done,
                         modifier = Modifier.weight(1f),
-                        label = { Text("Max BPM") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                        singleLine = true,
                     )
                 }
             }
@@ -418,13 +419,14 @@ private fun MonitoringTab(
             )
         }
 
+        // Bottom section: fills all remaining space
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.weight(1f).fillMaxWidth().padding(top = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            // HR graph + number: expands to fill space above buttons
             Box(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().weight(1f),
                 contentAlignment = Alignment.Center,
             ) {
                 HrGraph(
@@ -489,7 +491,7 @@ private fun MonitoringTab(
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Button(
@@ -505,13 +507,61 @@ private fun MonitoringTab(
                 ) {
                     Text("Start")
                 }
-                OutlinedButton(
-                    onClick = onStopMonitoring,
-                    enabled = uiState.monitoringState.isMonitoring,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text("Stop")
+                if (uiState.monitoringState.isMonitoring) {
+                    Button(
+                        onClick = onStopMonitoring,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFEF5350),
+                            contentColor = Color.White,
+                        ),
+                    ) {
+                        Text("Stop")
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = onStopMonitoring,
+                        enabled = false,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("Stop")
+                    }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BpmStepper(
+    label: String,
+    inputValue: String,
+    onValueChange: (String) -> Unit,
+    onDecrement: () -> Unit,
+    onIncrement: () -> Unit,
+    imeAction: ImeAction,
+    modifier: Modifier = Modifier,
+) {
+    val focusManager = LocalFocusManager.current
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OutlinedIconButton(onClick = onDecrement) {
+                Text("−", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+            OutlinedTextField(
+                value = inputValue,
+                onValueChange = onValueChange,
+                modifier = Modifier.weight(1f),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = imeAction),
+                keyboardActions = KeyboardActions(
+                    onNext = { focusManager.moveFocus(FocusDirection.Next) },
+                    onDone = { focusManager.clearFocus() },
+                ),
+                singleLine = true,
+            )
+            OutlinedIconButton(onClick = onIncrement) {
+                Text("+", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
         }
     }
