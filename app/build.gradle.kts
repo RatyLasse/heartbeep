@@ -38,6 +38,10 @@ android {
     }
 
     buildTypes {
+        val ciConfig = signingConfigs.findByName("ci")
+        debug {
+            if (ciConfig != null) signingConfig = ciConfig
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -45,7 +49,6 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            val ciConfig = signingConfigs.findByName("ci")
             if (ciConfig != null) signingConfig = ciConfig
         }
     }
