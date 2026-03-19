@@ -48,6 +48,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -229,16 +230,10 @@ private fun MainScreen(
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(
+        Box(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+            contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = "Heart rate alarm",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-            )
             PageDots(currentPage = pagerState.currentPage, pageCount = 2)
         }
 
@@ -376,16 +371,16 @@ private fun MonitoringTab(
                         OutlinedTextField(
                             value = uiState.lowerBoundInput,
                             onValueChange = onLowerBoundChange,
-                            modifier = Modifier.width(112.dp),
-                            label = { Text("Lower (opt.)") },
+                            modifier = Modifier.weight(1f),
+                            label = { Text("Min BPM (opt.)") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true,
                         )
                         OutlinedTextField(
                             value = uiState.thresholdInput,
                             onValueChange = onThresholdChange,
-                            modifier = Modifier.width(112.dp),
-                            label = { Text("Upper bpm") },
+                            modifier = Modifier.weight(1f),
+                            label = { Text("Max BPM") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true,
                         )
@@ -393,16 +388,18 @@ private fun MonitoringTab(
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Alert intensity", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("Alert intensity", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${uiState.soundIntensity}%", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                     Slider(
                         value = uiState.soundIntensity.toFloat(),
                         onValueChange = onSoundIntensityChange,
                         valueRange = 0f..100f,
-                    )
-                    Text(
-                        text = "Relative level: ${uiState.soundIntensity}%",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
 
@@ -437,12 +434,22 @@ private fun MonitoringTab(
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.padding(vertical = 16.dp),
                     ) {
-                        Text("Current HR", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        val hrColor = when {
+                            !uiState.monitoringState.isMonitoring || uiState.monitoringState.currentHr == null ->
+                                MaterialTheme.colorScheme.onSurface
+                            isHrOutOfBounds(
+                                uiState.monitoringState.currentHr,
+                                uiState.persistedThreshold,
+                                uiState.persistedLowerBound,
+                            ) -> Color(0xFFEF5350)
+                            else -> Color(0xFF66BB6A)
+                        }
                         Text(
                             text = uiState.monitoringState.currentHr?.let { "$it" } ?: "--",
                             fontSize = 96.sp,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center,
+                            color = hrColor,
                         )
                         Text(
                             text = if (uiState.monitoringState.currentHr == null) "Waiting for live data" else "bpm",
@@ -497,7 +504,7 @@ private fun MonitoringTab(
                     ) {
                         Text("Start")
                     }
-                    TextButton(
+                    OutlinedButton(
                         onClick = onStopMonitoring,
                         enabled = uiState.monitoringState.isMonitoring,
                         modifier = Modifier.weight(1f),
@@ -675,6 +682,18 @@ private fun DashboardStatusRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
+            val statusColor = when {
+                !hasMonitoringPermissions || !bluetoothEnabled ||
+                monitoringState.connectionState == ConnectionState.Disconnected ||
+                monitoringState.connectionState == ConnectionState.Error ->
+                    MaterialTheme.colorScheme.error
+                monitoringState.connectionState == ConnectionState.Monitoring ||
+                monitoringState.connectionState == ConnectionState.Connected ->
+                    Color(0xFF66BB6A)
+                monitoringState.connectionState == ConnectionState.Connecting ->
+                    Color(0xFFFFB300)
+                else -> MaterialTheme.colorScheme.onSurfaceVariant
+            }
             Text(
                 text = when {
                     !hasMonitoringPermissions -> "Bluetooth and notification permissions are still missing."
@@ -691,7 +710,7 @@ private fun DashboardStatusRow(
                         monitoringState.errorMessage ?: "Monitoring failed."
                     else -> "Ready to scan for your H10."
                 },
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = statusColor,
             )
         }
 
