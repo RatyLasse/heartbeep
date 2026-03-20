@@ -639,6 +639,7 @@ private fun HrGraph(
     upperBound: Int?,
     lowerBound: Int?,
     modifier: Modifier = Modifier,
+    showCenterMask: Boolean = true,
 ) {
     val idleLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
     Canvas(modifier = modifier) {
@@ -697,16 +698,18 @@ private fun HrGraph(
 
         flushPath()
 
-        // Erase the center so the HR number reads cleanly, fading in from both edges
-        drawRect(
-            brush = Brush.horizontalGradient(
-                0.15f to Color.Transparent,
-                0.38f to Color.Black.copy(alpha = 0.80f),
-                0.62f to Color.Black.copy(alpha = 0.80f),
-                0.85f to Color.Transparent,
-            ),
-            blendMode = BlendMode.DstOut,
-        )
+        if (showCenterMask) {
+            // Erase the center so the HR number reads cleanly, fading in from both edges
+            drawRect(
+                brush = Brush.horizontalGradient(
+                    0.15f to Color.Transparent,
+                    0.38f to Color.Black.copy(alpha = 0.80f),
+                    0.62f to Color.Black.copy(alpha = 0.80f),
+                    0.85f to Color.Transparent,
+                ),
+                blendMode = BlendMode.DstOut,
+            )
+        }
 
         drawContext.canvas.restore()
     }
@@ -745,38 +748,56 @@ private fun HistoryTab(
 
 @Composable
 private fun SessionItem(session: SessionRecord, onDelete: () -> Unit) {
-    Row(
+    val hrHistoryList = remember(session.hrHistory) { session.hrHistoryList() }
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
     ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text(
-                text = formatSessionDate(session.startTimeMs),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-            )
-            Text(
-                text = buildString {
-                    append(formatDuration(session.durationSeconds))
-                    session.averageHr?.let { append(" · avg $it bpm") }
-                    session.distanceMeters?.let { append(" · ${formatKilometers(it)} km") }
-                    session.paceSecondsPerKm?.let { append(" · ${formatPace(it)} min/km") }
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = formatSessionDate(session.startTimeMs),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                )
+                Text(
+                    text = buildString {
+                        append(formatDuration(session.durationSeconds))
+                        session.averageHr?.let { append(" · avg $it bpm") }
+                        session.distanceMeters?.let { append(" · ${formatKilometers(it)} km") }
+                        session.paceSecondsPerKm?.let { append(" · ${formatPace(it)} min/km") }
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete session",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
-        IconButton(onClick = onDelete) {
-            Icon(
-                imageVector = Icons.Default.Delete,
-                contentDescription = "Delete session",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        if (hrHistoryList.size >= 2) {
+            Spacer(modifier = Modifier.height(8.dp))
+            HrGraph(
+                hrHistory = hrHistoryList,
+                isMonitoring = true,
+                upperBound = null,
+                lowerBound = null,
+                showCenterMask = false,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
             )
         }
     }

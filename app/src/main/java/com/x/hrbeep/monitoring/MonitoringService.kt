@@ -47,6 +47,7 @@ class MonitoringService : Service() {
     private var currentSoundIntensity: Int = ThresholdRepository.DEFAULT_SOUND_INTENSITY
     private var sessionStartTimeMs: Long = 0
     private var sessionStartElapsedMs: Long = 0
+    private val sessionHrSamples = mutableListOf<Int>()
 
     override fun onCreate() {
         super.onCreate()
@@ -128,6 +129,7 @@ class MonitoringService : Service() {
         )
 
         latestHrForBeep = null
+        sessionHrSamples.clear()
         val alarmDecider = AlarmDecider()
 
         beepJob?.cancel()
@@ -196,6 +198,7 @@ class MonitoringService : Service() {
                         }
 
                         latestHrForBeep = sample.bpm
+                        sessionHrSamples.add(sample.bpm)
                         val averageHr = hrSampleAccumulator.record(sample.bpm)
                         val activeAlertTrigger = alarmDecider.currentAlertTrigger(
                             currentHr = sample.bpm,
@@ -238,6 +241,8 @@ class MonitoringService : Service() {
                 } else {
                     null
                 }
+                val hrHistoryString = sessionHrSamples.takeIf { it.isNotEmpty() }
+                    ?.joinToString(",")
                 serviceScope.launch(Dispatchers.IO) {
                     sessionHistoryRepository.saveSession(
                         SessionRecord(
@@ -246,6 +251,7 @@ class MonitoringService : Service() {
                             averageHr = finalState.averageHr,
                             distanceMeters = distanceMeters,
                             paceSecondsPerKm = paceSecondsPerKm,
+                            hrHistory = hrHistoryString,
                         ),
                     )
                 }
