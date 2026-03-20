@@ -17,6 +17,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
@@ -336,6 +337,7 @@ private fun MonitoringTab(
     onStopMonitoring: () -> Unit,
 ) {
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
     var showGpsDialog by remember { mutableStateOf(false) }
 
     if (showGpsDialog) {
@@ -363,7 +365,9 @@ private fun MonitoringTab(
     }
 
     Column(
-        modifier = modifier.padding(vertical = 8.dp),
+        modifier = modifier
+            .padding(vertical = 8.dp)
+            .pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } },
     ) {
         // Top controls
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
