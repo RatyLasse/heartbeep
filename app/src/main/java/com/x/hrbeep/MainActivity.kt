@@ -884,7 +884,7 @@ private fun DashboardStatusRow(
                         monitoringState.errorMessage ?: "Sensor disconnected."
                     monitoringState.connectionState == ConnectionState.Error ->
                         monitoringState.errorMessage ?: "Monitoring failed."
-                    else -> "Ready to scan for your H10."
+                    else -> "Ready to scan for HR devices."
                 },
                 color = statusColor,
             )
