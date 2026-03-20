@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [SessionRecord::class], version = 2, exportSchema = false)
+@Database(entities = [SessionRecord::class], version = 3, exportSchema = false)
 abstract class SessionDatabase : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
 
@@ -20,13 +20,19 @@ abstract class SessionDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE sessions ADD COLUMN hrHistory TEXT")
+            }
+        }
+
         fun getInstance(context: Context): SessionDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
                     context.applicationContext,
                     SessionDatabase::class.java,
                     "sessions.db",
-                ).addMigrations(MIGRATION_1_2).build().also { INSTANCE = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { INSTANCE = it }
             }
     }
 }
