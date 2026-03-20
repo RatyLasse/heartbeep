@@ -41,11 +41,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -58,8 +58,15 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -104,6 +111,10 @@ import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+private val HrOutOfBoundsColor = Color(0xFFEF5350)
+private val HrInRangeColor = Color(0xFF66BB6A)
+private val SensorConnectingColor = Color(0xFFFFB300)
 
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
@@ -370,87 +381,92 @@ private fun MonitoringTab(
             .pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } },
     ) {
         // Top controls
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            DashboardStatusRow(
-                hasMonitoringPermissions = hasMonitoringPermissions,
-                bluetoothEnabled = uiState.bluetoothEnabled,
-                monitoringState = uiState.monitoringState,
-                onGrantPermissions = onGrantPermissions,
-                onEnableBluetooth = onEnableBluetooth,
-            )
-
-            DeviceCompactRow(
-                uiState = uiState,
-                onScan = onScan,
-                onSelectDevice = onSelectDevice,
-                enabled = hasMonitoringPermissions &&
-                    uiState.bluetoothEnabled &&
-                    !uiState.monitoringState.isMonitoring,
-            )
-
+        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Text("Limits", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    BpmStepper(
-                        label = "Min BPM",
-                        inputValue = uiState.lowerBoundInput,
-                        onValueChange = onLowerBoundChange,
-                        onDecrement = {
-                            val lb = uiState.persistedLowerBound
-                            if (lb != null) onLowerBoundChange(if (lb <= 20) "" else (lb - 1).toString())
-                        },
-                        onIncrement = {
-                            val lb = uiState.persistedLowerBound
-                            onLowerBoundChange(((lb ?: 39) + 1).coerceAtMost(300).toString())
-                        },
-                        imeAction = ImeAction.Next,
-                        modifier = Modifier.weight(1f),
-                    )
-                    BpmStepper(
-                        label = "Max BPM",
-                        inputValue = uiState.thresholdInput,
-                        onValueChange = onThresholdChange,
-                        onDecrement = {
-                            val t = uiState.persistedThreshold
-                            if (t != null) onThresholdChange((t - 1).coerceAtLeast(20).toString())
-                        },
-                        onIncrement = {
-                            val t = uiState.persistedThreshold
-                            onThresholdChange(((t ?: (ThresholdRepository.DEFAULT_THRESHOLD_BPM - 1)) + 1).coerceAtMost(300).toString())
-                        },
-                        imeAction = ImeAction.Done,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
+                DashboardStatusRow(
+                    hasMonitoringPermissions = hasMonitoringPermissions,
+                    bluetoothEnabled = uiState.bluetoothEnabled,
+                    monitoringState = uiState.monitoringState,
+                    onGrantPermissions = onGrantPermissions,
+                    onEnableBluetooth = onEnableBluetooth,
+                )
 
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Row(
+                DeviceCompactRow(
+                    uiState = uiState,
+                    onScan = onScan,
+                    onSelectDevice = onSelectDevice,
+                    enabled = hasMonitoringPermissions &&
+                        uiState.bluetoothEnabled &&
+                        !uiState.monitoringState.isMonitoring,
+                )
+
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Text("Alert intensity", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("${uiState.soundIntensity}%", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Limits", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        BpmStepper(
+                            label = "Min BPM",
+                            inputValue = uiState.lowerBoundInput,
+                            onValueChange = onLowerBoundChange,
+                            onDecrement = {
+                                val lb = uiState.persistedLowerBound
+                                if (lb != null) onLowerBoundChange(if (lb <= 20) "" else (lb - 1).toString())
+                            },
+                            onIncrement = {
+                                val lb = uiState.persistedLowerBound
+                                onLowerBoundChange(((lb ?: 39) + 1).coerceAtMost(300).toString())
+                            },
+                            imeAction = ImeAction.Next,
+                            modifier = Modifier.weight(1f),
+                        )
+                        BpmStepper(
+                            label = "Max BPM",
+                            inputValue = uiState.thresholdInput,
+                            onValueChange = onThresholdChange,
+                            onDecrement = {
+                                val t = uiState.persistedThreshold
+                                if (t != null) onThresholdChange((t - 1).coerceAtLeast(20).toString())
+                            },
+                            onIncrement = {
+                                val t = uiState.persistedThreshold
+                                onThresholdChange(((t ?: (ThresholdRepository.DEFAULT_THRESHOLD_BPM - 1)) + 1).coerceAtMost(300).toString())
+                            },
+                            imeAction = ImeAction.Done,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
-                Slider(
-                    value = uiState.soundIntensity.toFloat(),
-                    onValueChange = onSoundIntensityChange,
-                    valueRange = 0f..100f,
+
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("Alert intensity", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${uiState.soundIntensity}%", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Slider(
+                        value = uiState.soundIntensity.toFloat(),
+                        onValueChange = onSoundIntensityChange,
+                        valueRange = 0f..100f,
+                    )
+                }
+
+                DistanceStatusSection(
+                    isMonitoring = uiState.monitoringState.isMonitoring,
+                    distanceMeters = uiState.monitoringState.distanceMeters,
+                    isDistanceTrackingEnabled = uiState.monitoringState.isDistanceTrackingEnabled,
+                    hasLocationPermission = hasLocationPermission,
+                    gpsEnabled = gpsEnabled,
+                    onGrantLocationPermission = onGrantLocationPermission,
                 )
             }
-
-            DistanceStatusSection(
-                isMonitoring = uiState.monitoringState.isMonitoring,
-                distanceMeters = uiState.monitoringState.distanceMeters,
-                isDistanceTrackingEnabled = uiState.monitoringState.isDistanceTrackingEnabled,
-                hasLocationPermission = hasLocationPermission,
-                gpsEnabled = gpsEnabled,
-                onGrantLocationPermission = onGrantLocationPermission,
-            )
         }
 
         // Bottom section: fills all remaining space
@@ -459,16 +475,17 @@ private fun MonitoringTab(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // HR graph + number: expands to fill space above buttons
-            val hrColor = when {
+            val hrColorTarget = when {
                 !uiState.monitoringState.isMonitoring || uiState.monitoringState.currentHr == null ->
                     MaterialTheme.colorScheme.onSurface
                 isHrOutOfBounds(
                     uiState.monitoringState.currentHr,
                     uiState.persistedThreshold,
                     uiState.persistedLowerBound,
-                ) -> Color(0xFFEF5350)
-                else -> Color(0xFF66BB6A)
+                ) -> HrOutOfBoundsColor
+                else -> HrInRangeColor
             }
+            val hrColor by animateColorAsState(hrColorTarget, label = "hrColor")
             Box(
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 contentAlignment = Alignment.Center,
@@ -524,43 +541,35 @@ private fun MonitoringTab(
                 }
             }
 
-            Row(
+            val isMonitoring = uiState.monitoringState.isMonitoring
+            val buttonContainerColor by animateColorAsState(
+                targetValue = if (isMonitoring) HrOutOfBoundsColor else MaterialTheme.colorScheme.primary,
+                label = "buttonContainerColor",
+            )
+            Button(
+                onClick = {
+                    if (isMonitoring) {
+                        onStopMonitoring()
+                    } else if (hasLocationPermission && !gpsEnabled) {
+                        showGpsDialog = true
+                    } else {
+                        onStartMonitoring()
+                    }
+                },
+                enabled = hasMonitoringPermissions && uiState.bluetoothEnabled,
                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = buttonContainerColor,
+                    contentColor = Color.White,
+                ),
             ) {
-                Button(
-                    onClick = {
-                        if (hasLocationPermission && !gpsEnabled) {
-                            showGpsDialog = true
-                        } else {
-                            onStartMonitoring()
-                        }
-                    },
-                    enabled = hasMonitoringPermissions && uiState.bluetoothEnabled && !uiState.monitoringState.isMonitoring,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text("Start")
-                }
-                if (uiState.monitoringState.isMonitoring) {
-                    Button(
-                        onClick = onStopMonitoring,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFEF5350),
-                            contentColor = Color.White,
-                        ),
-                    ) {
-                        Text("Stop")
-                    }
-                } else {
-                    OutlinedButton(
-                        onClick = onStopMonitoring,
-                        enabled = false,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text("Stop")
-                    }
-                }
+                Icon(
+                    imageVector = if (isMonitoring) Icons.Default.Stop else Icons.Default.PlayArrow,
+                    contentDescription = null,
+                    modifier = Modifier.size(ButtonDefaults.IconSize),
+                )
+                Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
+                Text(if (isMonitoring) "Stop" else "Start")
             }
         }
     }
@@ -677,8 +686,8 @@ private fun HrGraph(
             val color = when {
                 !isMonitoring -> idleLineColor
                 isHrOutOfBounds(hrHistory[i], upperBound, lowerBound) ||
-                    isHrOutOfBounds(hrHistory[i + 1], upperBound, lowerBound) -> Color(0xFFEF5350)
-                else -> Color(0xFF66BB6A)
+                    isHrOutOfBounds(hrHistory[i + 1], upperBound, lowerBound) -> HrOutOfBoundsColor
+                else -> HrInRangeColor
             }
 
             if (color != currentColor) {
@@ -729,12 +738,23 @@ private fun HistoryTab(
             modifier = modifier,
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = "No sessions recorded yet.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.History,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                )
+                Text(
+                    text = "No sessions recorded yet.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
     } else {
         LazyColumn(modifier = modifier) {
@@ -816,19 +836,40 @@ private fun DashboardStatusRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            val statusColor = when {
-                !hasMonitoringPermissions || !bluetoothEnabled ||
-                monitoringState.connectionState == ConnectionState.Disconnected ||
-                monitoringState.connectionState == ConnectionState.Error ->
-                    MaterialTheme.colorScheme.error
-                monitoringState.connectionState == ConnectionState.Monitoring ||
-                monitoringState.connectionState == ConnectionState.Connected ->
-                    Color(0xFF66BB6A)
-                monitoringState.connectionState == ConnectionState.Connecting ->
-                    Color(0xFFFFB300)
-                else -> MaterialTheme.colorScheme.onSurfaceVariant
-            }
+        val statusColorTarget = when {
+            !hasMonitoringPermissions || !bluetoothEnabled ||
+            monitoringState.connectionState == ConnectionState.Disconnected ||
+            monitoringState.connectionState == ConnectionState.Error ->
+                MaterialTheme.colorScheme.error
+            monitoringState.connectionState == ConnectionState.Monitoring ||
+            monitoringState.connectionState == ConnectionState.Connected ->
+                HrInRangeColor
+            monitoringState.connectionState == ConnectionState.Connecting ->
+                SensorConnectingColor
+            else -> MaterialTheme.colorScheme.onSurfaceVariant
+        }
+        val statusColor by animateColorAsState(statusColorTarget, label = "statusColor")
+        val statusIcon = when {
+            !hasMonitoringPermissions || !bluetoothEnabled ||
+            monitoringState.connectionState == ConnectionState.Disconnected ||
+            monitoringState.connectionState == ConnectionState.Error ->
+                Icons.Default.Warning
+            monitoringState.connectionState == ConnectionState.Monitoring ||
+            monitoringState.connectionState == ConnectionState.Connected ->
+                Icons.Default.CheckCircle
+            else -> Icons.Default.Bluetooth
+        }
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                imageVector = statusIcon,
+                contentDescription = null,
+                tint = statusColor,
+                modifier = Modifier.size(18.dp),
+            )
             Text(
                 text = when {
                     !hasMonitoringPermissions -> "Bluetooth and notification permissions are still missing."
