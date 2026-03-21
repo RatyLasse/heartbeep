@@ -80,6 +80,25 @@ android {
     }
 }
 
+// Force patched versions of vulnerable transitive dependencies pulled in by AGP/Kotlin build tools.
+// These don't end up in the APK but Dependabot flags them in the build dependency graph.
+configurations.configureEach {
+    resolutionStrategy {
+        force("io.netty:netty-common:4.1.129.Final")
+        force("io.netty:netty-handler:4.1.129.Final")
+        force("io.netty:netty-codec:4.1.129.Final")
+        force("io.netty:netty-codec-http:4.1.129.Final")
+        force("io.netty:netty-codec-http2:4.1.129.Final")
+        force("io.netty:netty-buffer:4.1.129.Final")
+        force("io.netty:netty-transport:4.1.129.Final")
+        force("io.netty:netty-resolver:4.1.129.Final")
+        force("com.google.protobuf:protobuf-java:3.25.5")
+        force("com.google.protobuf:protobuf-kotlin:3.25.5")
+        force("com.google.protobuf:protobuf-java-util:3.25.5")
+        force("org.apache.commons:commons-compress:1.27.1")
+    }
+}
+
 dependencies {
     implementation("androidx.core:core-ktx:1.18.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
