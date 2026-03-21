@@ -1,7 +1,6 @@
 package com.x.heartbeep.ui.monitoring
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
@@ -14,6 +13,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import com.x.heartbeep.ui.NeonCyan
 import com.x.heartbeep.ui.NeonGreen
 import com.x.heartbeep.ui.NeonRed
 
@@ -26,7 +26,7 @@ internal fun HrGraph(
     modifier: Modifier = Modifier,
     showCenterMask: Boolean = true,
 ) {
-    val idleLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+    val idleLineColor = NeonCyan.copy(alpha = 0.6f)
     Canvas(modifier = modifier) {
         val n = hrHistory.size
         if (n < 2) return@Canvas
