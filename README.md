@@ -1,4 +1,4 @@
-# HR Beep
+# HeartBeep
 
 Android app that connects to a Polar H10 heart rate monitor over Bluetooth LE, displays live heart rate, and beeps when the heart rate crosses user-defined upper or lower thresholds.
 
