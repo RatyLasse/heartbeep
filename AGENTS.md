@@ -12,3 +12,4 @@
 - After each completed app change, run the relevant automated tests, at minimum `./gradlew testDebugUnitTest`.
 - After each completed app change, rebuild and install the app if the user's phone is connected over ADB.
 - When an item from `IDEAS.txt` has been implemented, remove that item from `IDEAS.txt`.
+- When updating any dependency version in `build.gradle.kts` or `app/build.gradle.kts`, regenerate the lockfile immediately after with `./gradlew :app:dependencies --write-locks` and include the updated `app/gradle.lockfile` in the same commit.

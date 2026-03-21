@@ -5,6 +5,10 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+dependencyLocking {
+    lockAllConfigurations()
+}
+
 android {
     namespace = "com.x.heartbeep"
     compileSdk = 36
