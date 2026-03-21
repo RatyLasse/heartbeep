@@ -1,12 +1,20 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
+    android:viewportWidth="24"
+    android:viewportHeight="24">
 
-    <!-- Filled geometric heart silhouette for themed/monochrome icons -->
-    <path
-        android:fillColor="@android:color/black"
-        android:pathData="M 54,36 L 42,27 L 29,26 L 22,34 L 22,48 L 30,60 L 54,82 L 78,60 L 86,48 L 86,34 L 79,26 L 66,27 Z" />
+    <group
+        android:scaleX="0.72"
+        android:scaleY="0.72"
+        android:translateX="3.36"
+        android:translateY="3.36">
+
+        <!-- Filled geometric heart silhouette for themed/monochrome icons -->
+        <path
+            android:fillColor="@android:color/black"
+            android:pathData="M 12,7 L 9,5 L 5.5,4.5 L 3,6.5 L 3,10.5 L 5.5,14 L 12,20 L 18.5,14 L 21,10.5 L 21,6.5 L 18.5,4.5 L 15,5 Z" />
+
+    </group>
 
 </vector>

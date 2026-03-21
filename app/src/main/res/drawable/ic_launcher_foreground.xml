@@ -1,48 +1,56 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
+    android:viewportWidth="24"
+    android:viewportHeight="24">
 
-    <!--
-        Geometric low-poly heart outline with internal facet lines.
-        All vertices kept within the adaptive-icon safe zone (18-90 dp).
+    <group
+        android:scaleX="0.72"
+        android:scaleY="0.72"
+        android:translateX="3.36"
+        android:translateY="3.36">
 
-        Outer polygon (clockwise from top-center V):
-          (54,36) (42,27) (29,26) (22,34) (22,48) (30,60)
-          (54,82) (78,60) (86,48) (86,34) (79,26) (66,27)
-        Internal lines:
-          Left lobe X:  (29,26)→(22,48)  and  (22,34)→(42,27)
-          Right lobe X: (79,26)→(86,48)  and  (86,34)→(66,27)
-          Inner diagonals: (42,27)→(30,60)  and  (66,27)→(78,60)
-          Lower-V:      (30,60)→(54,36)  and  (78,60)→(54,36)
-    -->
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M 54,36 L 42,27 L 29,26 L 22,34 L 22,48 L 30,60
-                          L 54,82 L 78,60 L 86,48 L 86,34 L 79,26 L 66,27 Z
-                          M 29,26 L 22,48
-                          M 22,34 L 42,27
-                          M 79,26 L 86,48
-                          M 86,34 L 66,27
-                          M 42,27 L 30,60
-                          M 66,27 L 78,60
-                          M 30,60 L 54,36
-                          M 78,60 L 54,36"
-        android:strokeColor="@color/launcher_heart_stroke"
-        android:strokeWidth="2.5"
-        android:strokeLineJoin="round"
-        android:strokeLineCap="round" />
+        <!--
+            Geometric low-poly heart outline with internal facet lines.
+            Designed in a 24-unit viewport, scaled via group into the
+            adaptive-icon safe zone.
 
-    <!-- ECG waveform: flat baseline with QRS spike and T wave -->
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M 22,58 L 34,58 L 37,61 L 42,50 L 48,38
-                          L 53,66 L 57,58 L 65,58 L 68,53 L 72,48
-                          L 76,58 L 86,58"
-        android:strokeColor="@color/launcher_pulse"
-        android:strokeWidth="2.5"
-        android:strokeLineJoin="round"
-        android:strokeLineCap="round" />
+            Outer polygon (clockwise from top-center V):
+              (12,7) (9,5) (5.5,4.5) (3,6.5) (3,10.5) (5.5,14)
+              (12,20) (18.5,14) (21,10.5) (21,6.5) (18.5,4.5) (15,5)
+            Internal lines:
+              Left lobe X:  (5.5,4.5)→(3,10.5)  and  (3,6.5)→(9,5)
+              Right lobe X: (18.5,4.5)→(21,10.5) and (21,6.5)→(15,5)
+              Inner diagonals: (9,5)→(5.5,14)   and  (15,5)→(18.5,14)
+              Lower-V:      (5.5,14)→(12,7)     and  (18.5,14)→(12,7)
+        -->
+        <path
+            android:fillColor="#00000000"
+            android:pathData="M 12,7 L 9,5 L 5.5,4.5 L 3,6.5 L 3,10.5 L 5.5,14
+                              L 12,20 L 18.5,14 L 21,10.5 L 21,6.5 L 18.5,4.5 L 15,5 Z
+                              M 5.5,4.5 L 3,10.5
+                              M 3,6.5 L 9,5
+                              M 18.5,4.5 L 21,10.5
+                              M 21,6.5 L 15,5
+                              M 9,5 L 5.5,14
+                              M 15,5 L 18.5,14
+                              M 5.5,14 L 12,7
+                              M 18.5,14 L 12,7"
+            android:strokeColor="@color/launcher_heart_stroke"
+            android:strokeWidth="1.4"
+            android:strokeLineJoin="round"
+            android:strokeLineCap="round" />
+
+        <!-- ECG waveform: flat baseline with QRS spike and T wave -->
+        <path
+            android:fillColor="#00000000"
+            android:pathData="M 3,13 L 6.5,13 L 7.5,14 L 10,7 L 12.5,16.5
+                              L 14,13 L 16,13 L 17.5,10.5 L 19,13 L 21,13"
+            android:strokeColor="@color/launcher_pulse"
+            android:strokeWidth="1.4"
+            android:strokeLineJoin="round"
+            android:strokeLineCap="round" />
+
+    </group>
 
 </vector>

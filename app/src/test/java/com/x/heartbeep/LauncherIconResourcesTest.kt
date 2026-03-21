@@ -8,12 +8,15 @@ import org.junit.Test
 class LauncherIconResourcesTest {
 
     @Test
-    fun launcherForegroundUsesFullAdaptiveIconViewport() {
+    fun launcherForegroundUsesGroupScaledViewport() {
         val xml = loadForegroundVector()
 
-        // Icon must declare the standard 108dp adaptive icon viewport
-        assertTrue(xml.contains("android:viewportWidth=\"108\""))
-        assertTrue(xml.contains("android:viewportHeight=\"108\""))
+        // Icon uses a 24-unit viewport with a <group> to scale into the
+        // 108dp adaptive-icon safe zone (same approach as the original icon).
+        assertTrue(xml.contains("android:viewportWidth=\"24\""))
+        assertTrue(xml.contains("android:viewportHeight=\"24\""))
+        assertTrue(xml.contains("android:width=\"108dp\""))
+        assertTrue(xml.contains("android:height=\"108dp\""))
     }
 
     @Test
