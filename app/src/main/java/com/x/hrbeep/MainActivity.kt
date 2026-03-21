@@ -835,10 +835,16 @@ private fun SessionStatsRow(
 ) {
     var elapsedSeconds by remember { mutableLongStateOf(0L) }
     val startTime = monitoringState.monitoringStartTimeMs
+    val isMonitoring = monitoringState.isMonitoring
 
-    LaunchedEffect(startTime) {
+    LaunchedEffect(startTime, isMonitoring) {
         if (startTime == null) {
             elapsedSeconds = 0L
+            return@LaunchedEffect
+        }
+        if (!isMonitoring) {
+            // Freeze at the final value when monitoring stopped
+            elapsedSeconds = (System.currentTimeMillis() - startTime) / 1000
             return@LaunchedEffect
         }
         while (true) {
