@@ -169,14 +169,6 @@ class MainViewModel(
         _uiState.update { state -> state.copy(message = null) }
     }
 
-    fun updateSoundIntensity(value: Float) {
-        val intensity = value.toInt().coerceIn(0, 100)
-        _uiState.update { state -> state.copy(soundIntensity = intensity) }
-        viewModelScope.launch {
-            thresholdRepository.saveSoundIntensity(intensity)
-        }
-    }
-
     fun selectDevice(address: String) {
         _uiState.update { state -> state.copy(selectedDeviceAddress = address) }
         syncObservedDevice()

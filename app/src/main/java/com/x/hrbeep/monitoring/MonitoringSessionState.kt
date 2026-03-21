@@ -2,15 +2,6 @@ package com.x.hrbeep.monitoring
 
 import com.x.hrbeep.data.HeartRateMonitorUpdate
 
-enum class ConnectionState {
-    Idle,
-    Connecting,
-    Connected,
-    Monitoring,
-    Disconnected,
-    Error,
-}
-
 data class MonitoringSessionState(
     val isMonitoring: Boolean = false,
     val connectionState: ConnectionState = ConnectionState.Idle,
