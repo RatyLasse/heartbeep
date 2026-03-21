@@ -51,7 +51,7 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew assembleRelease --no-daemon -x lintVitalRelease
+        run: ./gradlew assembleRelease lintVitalRelease --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v5
