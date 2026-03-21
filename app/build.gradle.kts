@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.x.hrbeep"
+    namespace = "com.x.heartbeep"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.x.hrbeep"
+        applicationId = "com.x.heartbeep"
         minSdk = 31
         targetSdk = 35
         versionCode = 1

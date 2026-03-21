@@ -14,6 +14,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "hr-beep"
+rootProject.name = "heartbeep"
 include(":app")
 

@@ -1,0 +1,476 @@
+package com.x.heartbeep.monitoring
+
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.Service
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import android.os.SystemClock
+import kotlin.math.roundToInt
+import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
+import com.x.heartbeep.HeartBeepApplication
+import com.x.heartbeep.MainActivity
+import com.x.heartbeep.formatKilometers
+import com.x.heartbeep.formatPace
+import com.x.heartbeep.R
+import com.x.heartbeep.data.SessionHistoryRepository
+import com.x.heartbeep.data.SessionRecord
+import com.x.heartbeep.data.ThresholdRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+class MonitoringService : Service() {
+    private lateinit var heartRateConnectionManager: HeartRateConnectionManager
+    private lateinit var thresholdRepository: ThresholdRepository
+    private lateinit var monitoringController: MonitoringController
+    private lateinit var alarmPlayer: AlarmPlayer
+    private lateinit var gpsLocationTracker: GpsLocationTracker
+    private lateinit var sessionHistoryRepository: SessionHistoryRepository
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var monitoringJob: Job? = null
+    private var beepJob: Job? = null
+    private var distanceTrackingJob: Job? = null
+    private var settingsJob: Job? = null
+    @Volatile private var latestHrForBeep: Int? = null
+    private var currentSoundIntensity: Int = ThresholdRepository.DEFAULT_SOUND_INTENSITY
+    private var sessionStartTimeMs: Long = 0
+    private var sessionStartElapsedMs: Long = 0
+    private val sessionHrSamples = mutableListOf<Int>()
+    private var sessionUpperBound: Int? = null
+    private var sessionLowerBound: Int? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        val container = (application as HeartBeepApplication).appContainer
+        heartRateConnectionManager = container.heartRateConnectionManager
+        thresholdRepository = container.thresholdRepository
+        monitoringController = container.monitoringController
+        alarmPlayer = container.alarmPlayer
+        gpsLocationTracker = container.gpsLocationTracker
+        sessionHistoryRepository = container.sessionHistoryRepository
+        createNotificationChannel()
+
+        settingsJob = serviceScope.launch {
+            thresholdRepository.soundIntensityFlow.collect { intensity ->
+                currentSoundIntensity = intensity
+            }
+        }
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        return when (intent?.action) {
+            ACTION_START -> {
+                val deviceAddress = intent.getStringExtra(EXTRA_DEVICE_ADDRESS)
+                val deviceName = intent.getStringExtra(EXTRA_DEVICE_NAME)
+                val threshold = intent.getIntExtra(EXTRA_THRESHOLD, 0).takeIf { it > 0 }
+                val lowerBound = intent.getIntExtra(EXTRA_LOWER_BOUND, 0).takeIf { it > 0 }
+                val soundIntensity = intent.getIntExtra(EXTRA_SOUND_INTENSITY, 80)
+                currentSoundIntensity = soundIntensity
+                if (deviceAddress.isNullOrBlank()) {
+                    stopMonitoring("Missing device address.")
+                } else {
+                    startMonitoring(deviceAddress, deviceName, threshold, lowerBound)
+                }
+                START_STICKY
+            }
+
+            ACTION_STOP -> {
+                stopMonitoring()
+                START_NOT_STICKY
+            }
+
+            else -> START_NOT_STICKY
+        }
+    }
+
+    override fun onDestroy() {
+        monitoringJob?.cancel()
+        distanceTrackingJob?.cancel()
+        settingsJob?.cancel()
+        alarmPlayer.release()
+        serviceScope.cancel()
+        super.onDestroy()
+    }
+
+    override fun onBind(intent: Intent?) = null
+
+    private fun startMonitoring(
+        deviceAddress: String,
+        deviceName: String?,
+        threshold: Int?,
+        lowerBound: Int? = null,
+    ) {
+        monitoringJob?.cancel()
+        alarmPlayer.setPersistentDucking(false)
+        sessionStartTimeMs = System.currentTimeMillis()
+        sessionStartElapsedMs = SystemClock.elapsedRealtime()
+        heartRateConnectionManager.observeDevice(
+            deviceName = deviceName ?: deviceAddress,
+            deviceAddress = deviceAddress,
+        )
+        monitoringController.beginMonitoring()
+        startDistanceTracking(threshold)
+
+        startForegroundWithState(
+            contentText = notificationContentText(
+                monitoringState = monitoringController.state.value,
+                threshold = threshold,
+            ),
+        )
+
+        latestHrForBeep = null
+        sessionHrSamples.clear()
+        sessionUpperBound = threshold
+        sessionLowerBound = lowerBound
+        val alarmDecider = AlarmDecider()
+
+        beepJob?.cancel()
+        beepJob = serviceScope.launch(Dispatchers.Default) {
+            while (true) {
+                val hr = latestHrForBeep
+                if (hr != null && alarmDecider.shouldBeep(
+                        currentHr = hr,
+                        threshold = threshold,
+                        lowerBound = lowerBound,
+                        nowElapsedMs = SystemClock.elapsedRealtime(),
+                    )
+                ) {
+                    alarmPlayer.beep(
+                        intensity = currentSoundIntensity,
+                        trigger = alarmDecider.currentAlertTrigger(hr, threshold, lowerBound)
+                            ?: AlarmTrigger.AboveUpperBound,
+                    )
+                }
+                delay(100L)
+            }
+        }
+
+        val audioAlertTracker = SensorConnectionAudioAlertTracker().apply {
+            onMonitoringStarted(hasLiveHeartRate = monitoringController.state.value.currentHr != null)
+        }
+        val hrSampleAccumulator = HeartRateSampleAccumulator()
+
+        monitoringJob = serviceScope.launch(Dispatchers.Default) {
+            heartRateConnectionManager.events.collect { event ->
+                when (event) {
+                    is HeartRateConnectionEvent.ConnectionLost -> {
+                        if (event.deviceAddress != deviceAddress) {
+                            return@collect
+                        }
+
+                        latestHrForBeep = null
+                        alarmPlayer.setPersistentDucking(false)
+                        audioAlertTracker.onMonitoringFailure()?.let { alert ->
+                            announceAudioAlert(alert)
+                        }
+                        updateForegroundNotification(
+                            contentText = event.errorMessage,
+                        )
+                    }
+
+                    is HeartRateConnectionEvent.Update -> {
+                        if (event.deviceAddress != deviceAddress) {
+                            return@collect
+                        }
+
+                        val update = event.update
+                        audioAlertTracker.onMonitorUpdate(update)?.let { alert ->
+                            announceAudioAlert(alert)
+                        }
+
+                        val sample = update.heartRateSample
+                        if (sample == null) {
+                            updateForegroundNotification(
+                                contentText = notificationContentText(
+                                    monitoringState = monitoringController.state.value,
+                                    threshold = threshold,
+                                ),
+                            )
+                            return@collect
+                        }
+
+                        latestHrForBeep = sample.bpm
+                        sessionHrSamples.add(sample.bpm)
+                        val averageHr = hrSampleAccumulator.record(sample.bpm)
+                        val activeAlertTrigger = alarmDecider.currentAlertTrigger(
+                            currentHr = sample.bpm,
+                            threshold = threshold,
+                            lowerBound = lowerBound,
+                        )
+                        alarmPlayer.setPersistentDucking(activeAlertTrigger != null)
+                        monitoringController.updateMonitoringAverage(averageHr)
+
+                        updateForegroundNotification(
+                            contentText = notificationContentText(
+                                monitoringState = monitoringController.state.value,
+                                threshold = threshold,
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun stopMonitoring(errorMessage: String? = null) {
+        monitoringJob?.cancel()
+        monitoringJob = null
+        beepJob?.cancel()
+        beepJob = null
+        latestHrForBeep = null
+        distanceTrackingJob?.cancel()
+        distanceTrackingJob = null
+        alarmPlayer.setPersistentDucking(false)
+
+        val startElapsed = sessionStartElapsedMs
+        if (errorMessage == null && startElapsed > 0) {
+            val finalState = monitoringController.state.value
+            val durationSeconds = ((SystemClock.elapsedRealtime() - startElapsed) / 1000).toInt()
+            if (durationSeconds >= MIN_SESSION_DURATION_SECONDS) {
+                val distanceMeters = finalState.distanceMeters
+                val paceSecondsPerKm = if (distanceMeters != null && distanceMeters >= 100.0) {
+                    (durationSeconds * 1000.0 / distanceMeters).roundToInt()
+                } else {
+                    null
+                }
+                val hrHistoryString = sessionHrSamples.takeIf { it.isNotEmpty() }
+                    ?.joinToString(",")
+                serviceScope.launch(Dispatchers.IO) {
+                    sessionHistoryRepository.saveSession(
+                        SessionRecord(
+                            startTimeMs = sessionStartTimeMs,
+                            durationSeconds = durationSeconds,
+                            averageHr = finalState.averageHr,
+                            distanceMeters = distanceMeters,
+                            paceSecondsPerKm = paceSecondsPerKm,
+                            hrHistory = hrHistoryString,
+                            upperBound = sessionUpperBound,
+                            lowerBound = sessionLowerBound,
+                        ),
+                    )
+                }
+            }
+            sessionStartElapsedMs = 0
+        }
+
+        if (errorMessage == null) {
+            monitoringController.endMonitoring()
+        }
+
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
+    }
+
+    private suspend fun announceAudioAlert(alert: SessionAudioAlert) {
+        withContext(Dispatchers.Default) {
+            alarmPlayer.speak(alert.spokenText(this@MonitoringService))
+        }
+    }
+
+    private fun startDistanceTracking(threshold: Int?) {
+        distanceTrackingJob?.cancel()
+        distanceTrackingJob = null
+
+        if (!gpsLocationTracker.canTrackDistance()) {
+            monitoringController.disableDistanceTracking()
+            return
+        }
+
+        monitoringController.enableDistanceTracking()
+
+        val distanceTracker = DistanceTracker()
+        distanceTrackingJob = serviceScope.launch {
+            runCatching {
+                gpsLocationTracker.updates().collect { event ->
+                    when (event) {
+                        is GpsTrackingEvent.LocationUpdate -> {
+                            val progress = distanceTracker.record(event.point) ?: return@collect
+                            val elapsedSeconds = (SystemClock.elapsedRealtime() - sessionStartElapsedMs) / 1000.0
+                            val pace = if (progress.totalMeters >= 100.0 && elapsedSeconds > 0) {
+                                (elapsedSeconds * 1000.0 / progress.totalMeters).roundToInt()
+                            } else {
+                                null
+                            }
+                            monitoringController.updateDistance(progress.totalMeters, pace)
+
+                            progress.completedKilometers.forEach { kilometer ->
+                                announceAudioAlert(SessionAudioAlert.DistanceMarker(kilometer))
+                            }
+
+                            updateForegroundNotification(
+                                contentText = notificationContentText(
+                                    monitoringState = monitoringController.state.value,
+                                    threshold = threshold,
+                                ),
+                            )
+                        }
+
+                        GpsTrackingEvent.ProviderDisabled -> {
+                            monitoringController.disableDistanceTracking()
+                            updateForegroundNotification(
+                                contentText = notificationContentText(
+                                    monitoringState = monitoringController.state.value,
+                                    threshold = threshold,
+                                ),
+                            )
+                        }
+                    }
+                }
+            }.onFailure {
+                monitoringController.disableDistanceTracking()
+                updateForegroundNotification(
+                    contentText = notificationContentText(
+                        monitoringState = monitoringController.state.value,
+                        threshold = threshold,
+                    ),
+                )
+            }
+        }
+    }
+
+    private fun startForegroundWithState(contentText: String) {
+        ServiceCompat.startForeground(
+            this,
+            NOTIFICATION_ID,
+            buildNotification(contentText = contentText),
+            foregroundServiceType(),
+        )
+    }
+
+    private fun updateForegroundNotification(contentText: String) {
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        notificationManager.notify(
+            NOTIFICATION_ID,
+            buildNotification(contentText = contentText),
+        )
+    }
+
+    private fun foregroundServiceType(): Int {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            return 0
+        }
+
+        var type = android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+        if (gpsLocationTracker.canTrackDistance()) {
+            type = type or android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+        }
+        return type
+    }
+
+    private fun notificationContentText(
+        monitoringState: MonitoringSessionState,
+        threshold: Int?,
+    ): String {
+        val limitSuffix = if (threshold != null) " | limit $threshold bpm" else ""
+        return when (monitoringState.connectionState) {
+            ConnectionState.Monitoring -> {
+                val currentHr = monitoringState.currentHr ?: return "Waiting for heart-rate data$limitSuffix"
+                val stats = buildList {
+                    monitoringState.averageHr?.let { add("avg: $it bpm") }
+                    monitoringState.distanceMeters?.let { add("dist: ${formatKilometers(it)} km") }
+                    monitoringState.paceSecondsPerKm?.let { add("pace: ${formatPace(it)} min/km") }
+                }
+                val suffix = stats.takeIf { it.isNotEmpty() }?.joinToString(prefix = " (", postfix = ")").orEmpty()
+                "HR $currentHr bpm$suffix$limitSuffix"
+            }
+            ConnectionState.Disconnected -> monitoringState.errorMessage ?: "Sensor disconnected."
+            else -> "Waiting for heart-rate data$limitSuffix"
+        }
+    }
+
+    private fun buildNotification(contentText: String): Notification {
+        val openAppIntent = PendingIntent.getActivity(
+            this,
+            1,
+            Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        val stopIntent = PendingIntent.getService(
+            this,
+            2,
+            Intent(this, MonitoringService::class.java).apply { action = ACTION_STOP },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+            .setContentTitle(getString(R.string.notification_title))
+            .setContentText(contentText)
+            .setSmallIcon(R.drawable.ic_notification_heart)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setContentIntent(openAppIntent)
+            .addAction(0, getString(R.string.notification_stop), stopIntent)
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText(contentText)
+            )
+            .build()
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            return
+        }
+
+        val channel = NotificationChannel(
+            NOTIFICATION_CHANNEL_ID,
+            getString(R.string.notification_channel_name),
+            NotificationManager.IMPORTANCE_LOW,
+        ).apply {
+            description = getString(R.string.notification_channel_description)
+        }
+
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        notificationManager.createNotificationChannel(channel)
+    }
+
+    companion object {
+        private const val NOTIFICATION_CHANNEL_ID = "monitoring"
+        private const val NOTIFICATION_ID = 1001
+
+        private const val MIN_SESSION_DURATION_SECONDS = 10
+
+        private const val ACTION_START = "com.x.heartbeep.action.START"
+        private const val ACTION_STOP = "com.x.heartbeep.action.STOP"
+        private const val EXTRA_DEVICE_ADDRESS = "extra_device_address"
+        private const val EXTRA_DEVICE_NAME = "extra_device_name"
+        private const val EXTRA_THRESHOLD = "extra_threshold"
+        private const val EXTRA_LOWER_BOUND = "extra_lower_bound"
+        private const val EXTRA_SOUND_INTENSITY = "extra_sound_intensity"
+
+        fun startIntent(
+            context: Context,
+            deviceAddress: String,
+            deviceName: String,
+            threshold: Int? = null,
+            lowerBound: Int? = null,
+            soundIntensity: Int,
+        ): Intent = Intent(context, MonitoringService::class.java).apply {
+            action = ACTION_START
+            putExtra(EXTRA_DEVICE_ADDRESS, deviceAddress)
+            putExtra(EXTRA_DEVICE_NAME, deviceName)
+            putExtra(EXTRA_THRESHOLD, threshold ?: 0)
+            putExtra(EXTRA_LOWER_BOUND, lowerBound ?: 0)
+            putExtra(EXTRA_SOUND_INTENSITY, soundIntensity)
+        }
+
+        fun stopIntent(context: Context): Intent = Intent(context, MonitoringService::class.java).apply {
+            action = ACTION_STOP
+        }
+    }
+}
