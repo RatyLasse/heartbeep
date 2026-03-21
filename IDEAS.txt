@@ -1,4 +1,4 @@
 - Ask AI for further dev ideas and implement the best.
-- Come up with a more suitable name for the app
+- Take screenshots of the app to store/screenshots, add them to README and use in Play store.
 - Publish on Google Play.
 - Add optional support the dev in-app purchase or paywall exercise history (payment only visible on that tab).
