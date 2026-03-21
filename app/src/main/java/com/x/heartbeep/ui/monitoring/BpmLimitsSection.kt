@@ -41,11 +41,11 @@ import com.x.heartbeep.MainUiState
 import com.x.heartbeep.data.ThresholdRepository
 import com.x.heartbeep.ui.CardBackground
 import com.x.heartbeep.ui.NeonCyan
+import com.x.heartbeep.ui.SubCardBackground
+import com.x.heartbeep.ui.SurfaceInset
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private val LimitButtonBg = Color(0xFF1C2A38)
-private val LimitValueBg = Color(0xFF080E14)
 
 @Composable
 internal fun BpmLimitsSection(
@@ -131,7 +131,7 @@ private fun BpmLimitCard(
             RepeatButton(
                 action = onDecrement,
                 shape = RoundedCornerShape(topStart = segmentCorner, bottomStart = segmentCorner),
-                background = LimitButtonBg,
+                background = SubCardBackground,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight(),
@@ -151,7 +151,7 @@ private fun BpmLimitCard(
                 modifier = Modifier
                     .weight(1.2f)
                     .fillMaxHeight()
-                    .background(LimitValueBg)
+                    .background(SurfaceInset)
                     .padding(vertical = 14.dp),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Number,
@@ -180,7 +180,7 @@ private fun BpmLimitCard(
             RepeatButton(
                 action = onIncrement,
                 shape = RoundedCornerShape(topEnd = segmentCorner, bottomEnd = segmentCorner),
-                background = LimitButtonBg,
+                background = SubCardBackground,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight(),
@@ -201,7 +201,7 @@ internal fun RepeatButton(
     action: () -> Unit,
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(10.dp),
-    background: Color = Color(0xFF0E151D),
+    background: Color = SubCardBackground,
     content: @Composable () -> Unit,
 ) {
     val scope = rememberCoroutineScope()

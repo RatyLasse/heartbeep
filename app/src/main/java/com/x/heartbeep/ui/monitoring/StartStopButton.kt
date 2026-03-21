@@ -10,7 +10,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,9 +58,9 @@ internal fun StartStopButton(
             shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = NeonCyan,
-                contentColor = Color(0xFF0A1018),
+                contentColor = MaterialTheme.colorScheme.surface,
                 disabledContainerColor = NeonCyan.copy(alpha = 0.25f),
-                disabledContentColor = Color(0xFF0A1018).copy(alpha = 0.5f),
+                disabledContentColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
             ),
         ) {
             Text(
