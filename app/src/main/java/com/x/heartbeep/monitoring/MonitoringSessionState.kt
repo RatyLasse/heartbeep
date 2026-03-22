@@ -57,6 +57,7 @@ data class MonitoringSessionState(
     fun endMonitoring(): MonitoringSessionState = copy(
         isMonitoring = false,
         errorMessage = null,
+        monitoringStartTimeMs = null,
         connectionState = when (connectionState) {
             ConnectionState.Monitoring -> ConnectionState.Connected
             else -> connectionState

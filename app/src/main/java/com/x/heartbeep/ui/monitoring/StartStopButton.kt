@@ -1,21 +1,37 @@
 package com.x.heartbeep.ui.monitoring
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material3.MaterialTheme
 import com.x.heartbeep.ui.NeonCyan
 import com.x.heartbeep.ui.NeonRed
+import kotlinx.coroutines.launch
+
+private const val HOLD_DURATION_MS = 2000
 
 @Composable
 internal fun StartStopButton(
@@ -26,27 +42,58 @@ internal fun StartStopButton(
 ) {
     if (isMonitoring) {
         val stopShape = RoundedCornerShape(14.dp)
-        OutlinedButton(
-            onClick = onStop,
+        val progress = remember { Animatable(0f) }
+        val scope = rememberCoroutineScope()
+
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp)
-                .border(
-                    width = 1.5.dp,
-                    color = NeonRed.copy(alpha = 0.7f),
-                    shape = stopShape,
-                ),
-            shape = stopShape,
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = NeonRed,
-            ),
+                .clip(stopShape)
+                .border(1.5.dp, NeonRed.copy(alpha = 0.7f), stopShape)
+                .pointerInput(onStop) {
+                    awaitEachGesture {
+                        awaitFirstDown(requireUnconsumed = false)
+                        val animJob = scope.launch {
+                            progress.snapTo(0f)
+                            progress.animateTo(
+                                targetValue = 1f,
+                                animationSpec = tween(
+                                    durationMillis = HOLD_DURATION_MS,
+                                    easing = LinearEasing,
+                                ),
+                            )
+                            onStop()
+                        }
+                        waitForUpOrCancellation()
+                        if (animJob.isActive) {
+                            animJob.cancel()
+                            scope.launch { progress.snapTo(0f) }
+                        }
+                    }
+                },
+            contentAlignment = Alignment.CenterStart,
         ) {
-            Text(
-                "\u25A0  Stop",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                fontSize = 17.sp,
+            // Red fill layer (animates left to right)
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(fraction = progress.value)
+                    .background(NeonRed.copy(alpha = 0.2f)),
             )
+            // Button text centered
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "\u25A0  Stop",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp,
+                    color = NeonRed,
+                )
+            }
         }
     } else {
         Button(

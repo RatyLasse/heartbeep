@@ -14,7 +14,7 @@ fun formatPace(paceSecondsPerKm: Int): String {
 }
 
 fun formatSessionDate(epochMs: Long): String =
-    SimpleDateFormat("MMM d, HH:mm", Locale.getDefault()).format(Date(epochMs))
+    SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(epochMs))
 
 fun formatDuration(seconds: Int): String {
     val m = seconds / 60

@@ -57,6 +57,18 @@ class MonitoringSessionStateTest {
     }
 
     @Test
+    fun `end monitoring clears monitoringStartTimeMs to prevent duration timer from continuing`() {
+        val stopped = MonitoringSessionState(
+            isMonitoring = true,
+            connectionState = ConnectionState.Monitoring,
+            monitoringStartTimeMs = System.currentTimeMillis(),
+        ).endMonitoring()
+
+        assertFalse(stopped.isMonitoring)
+        assertNull(stopped.monitoringStartTimeMs)
+    }
+
+    @Test
     fun `connection updates keep monitoring state active`() {
         val updated = MonitoringSessionState(
             isMonitoring = true,

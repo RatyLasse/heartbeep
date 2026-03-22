@@ -31,8 +31,11 @@ internal fun HrGraph(
         val n = hrHistory.size
         if (n < 2) return@Canvas
 
-        val minHr = (hrHistory.min() - 5).coerceAtLeast(30)
-        val maxHr = (hrHistory.max() + 5).coerceAtMost(300)
+        val sorted = hrHistory.sorted()
+        val lowerIdx = (sorted.size * 0.05f).toInt().coerceIn(0, sorted.lastIndex)
+        val upperIdx = (sorted.size * 0.95f).toInt().coerceIn(0, sorted.lastIndex)
+        val minHr = (sorted[lowerIdx] - 5).coerceAtLeast(30)
+        val maxHr = (sorted[upperIdx] + 5).coerceAtMost(300)
         val range = (maxHr - minHr).toFloat().coerceAtLeast(10f)
 
         fun hrToY(hr: Int): Float = size.height - (hr - minHr) / range * size.height

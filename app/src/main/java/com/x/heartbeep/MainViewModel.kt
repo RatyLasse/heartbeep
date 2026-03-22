@@ -4,8 +4,13 @@ import android.app.Application
 import android.bluetooth.BluetoothAdapter
 import android.content.Intent
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import com.x.heartbeep.data.BleDeviceCandidate
 import com.x.heartbeep.data.BleHeartRateRepository
 import com.x.heartbeep.data.SessionHistoryRepository
@@ -300,6 +305,37 @@ class MainViewModel(
     fun stopMonitoring() {
         val context = getApplication<Application>()
         context.startService(MonitoringService.stopIntent(context))
+    }
+
+    fun exportSessionsCsvIntent(): Intent? {
+        val sessions = _uiState.value.sessionHistory
+        if (sessions.isEmpty()) return null
+
+        val context = getApplication<Application>()
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+
+        val csv = buildString {
+            appendLine("Date,Duration (s),Avg BPM,Distance (km),Pace (s/km),Upper Bound,Lower Bound,HR Samples")
+            for (s in sessions) {
+                val date = dateFormat.format(Date(s.startTimeMs))
+                val dist = s.distanceMeters?.let { String.format(Locale.US, "%.2f", it / 1000.0) } ?: ""
+                val pace = s.paceSecondsPerKm?.toString() ?: ""
+                val upper = s.upperBound?.toString() ?: ""
+                val lower = s.lowerBound?.toString() ?: ""
+                val hr = s.hrHistory ?: ""
+                appendLine("$date,${s.durationSeconds},${s.averageHr ?: ""},${dist},${pace},${upper},${lower},\"$hr\"")
+            }
+        }
+
+        val file = File(context.cacheDir, "heartbeep-sessions.csv")
+        file.writeText(csv)
+
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        return Intent(Intent.ACTION_SEND).apply {
+            type = "text/csv"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
     }
 
     fun openBluetoothEnableIntent(): Intent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)

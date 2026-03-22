@@ -1,6 +1,7 @@
 package com.x.heartbeep
 
 import android.Manifest
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -27,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import android.content.pm.PackageManager
 import android.location.LocationManager
+import android.view.WindowManager
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.x.heartbeep.ui.MainScreen
@@ -75,6 +77,22 @@ class MainActivity : ComponentActivity() {
             ) {
                 systemStateVersion += 1
                 viewModel.refreshBluetoothState()
+            }
+
+            LaunchedEffect(uiState.monitoringState.isMonitoring) {
+                if (uiState.monitoringState.isMonitoring) {
+                    setShowWhenLocked(true)
+                    setTurnScreenOn(true)
+                    window.addFlags(
+                        WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+                    )
+                } else {
+                    setShowWhenLocked(false)
+                    setTurnScreenOn(false)
+                    window.clearFlags(
+                        WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+                    )
+                }
             }
 
             LaunchedEffect(uiState.message) {
@@ -140,6 +158,11 @@ class MainActivity : ComponentActivity() {
                         onStartMonitoring = viewModel::startMonitoring,
                         onStopMonitoring = viewModel::stopMonitoring,
                         onDeleteSession = viewModel::requestDeleteSession,
+                        onExportSessions = {
+                            viewModel.exportSessionsCsvIntent()?.let { intent ->
+                                startActivity(Intent.createChooser(intent, "Export Sessions"))
+                            }
+                        },
                     )
                 }
             }

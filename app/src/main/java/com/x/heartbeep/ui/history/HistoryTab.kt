@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -45,6 +46,7 @@ internal fun HistoryTab(
     modifier: Modifier = Modifier,
     sessions: List<SessionRecord>,
     onDelete: (Long) -> Unit,
+    onExport: () -> Unit,
 ) {
     if (sessions.isEmpty()) {
         Box(
@@ -74,6 +76,20 @@ internal fun HistoryTab(
             modifier = modifier,
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            item {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.CenterEnd,
+                ) {
+                    IconButton(onClick = onExport) {
+                        Icon(
+                            imageVector = Icons.Outlined.Share,
+                            contentDescription = "Export sessions as CSV",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
             items(sessions, key = { it.id }) { session ->
                 SessionCard(session = session, onDelete = { onDelete(session.id) })
             }
