@@ -5,13 +5,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.unit.dp
 import com.x.heartbeep.ui.NeonCyan
 import com.x.heartbeep.ui.NeonGreen
@@ -96,15 +99,26 @@ internal fun HrGraph(
         flushPath()
 
         if (showCenterMask) {
-            drawRect(
-                brush = Brush.horizontalGradient(
-                    0.15f to Color.Transparent,
-                    0.38f to Color.Black.copy(alpha = 0.80f),
-                    0.62f to Color.Black.copy(alpha = 0.80f),
-                    0.85f to Color.Transparent,
-                ),
-                blendMode = BlendMode.DstOut,
-            )
+            val center = Offset(size.width / 2f, size.height / 2f)
+            // Use a circular radial gradient then scale it into an ellipse
+            // so the mask is wider than tall (matching the text aspect ratio).
+            val radius = size.height * 0.45f
+            val scaleX = (size.width * 0.45f) / radius
+            scale(scaleX = scaleX, scaleY = 1f, pivot = center) {
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        0.0f to Color.Black.copy(alpha = 0.80f),
+                        0.6f to Color.Black.copy(alpha = 0.70f),
+                        1.0f to Color.Transparent,
+                        center = center,
+                        radius = radius,
+                        tileMode = TileMode.Clamp,
+                    ),
+                    center = center,
+                    radius = radius,
+                    blendMode = BlendMode.DstOut,
+                )
+            }
         }
 
         drawContext.canvas.restore()
