@@ -1,5 +1,7 @@
 package com.x.heartbeep.ui.monitoring
 
+import android.os.VibrationEffect
+import android.os.Vibrator
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -24,14 +26,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.x.heartbeep.ui.NeonCyan
 import com.x.heartbeep.ui.NeonRed
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private const val HOLD_DURATION_MS = 2000
+private const val CONFIRM_HOLD_MS = 200L
 
 @Composable
 internal fun StartStopButton(
@@ -43,7 +48,9 @@ internal fun StartStopButton(
     if (isMonitoring) {
         val stopShape = RoundedCornerShape(14.dp)
         val progress = remember { Animatable(0f) }
+        val fillAlpha = remember { Animatable(0.2f) }
         val scope = rememberCoroutineScope()
+        val vibrator = LocalContext.current.getSystemService(Vibrator::class.java)
 
         Box(
             modifier = Modifier
@@ -56,6 +63,7 @@ internal fun StartStopButton(
                         awaitFirstDown(requireUnconsumed = false)
                         val animJob = scope.launch {
                             progress.snapTo(0f)
+                            fillAlpha.snapTo(0.2f)
                             progress.animateTo(
                                 targetValue = 1f,
                                 animationSpec = tween(
@@ -63,12 +71,24 @@ internal fun StartStopButton(
                                     easing = LinearEasing,
                                 ),
                             )
+                            // Confirmation: haptic tick + full-opacity flash
+                            vibrator?.vibrate(
+                                VibrationEffect.createOneShot(40, VibrationEffect.DEFAULT_AMPLITUDE),
+                            )
+                            fillAlpha.animateTo(
+                                targetValue = 0.5f,
+                                animationSpec = tween(durationMillis = 80),
+                            )
+                            delay(CONFIRM_HOLD_MS)
                             onStop()
                         }
                         waitForUpOrCancellation()
                         if (animJob.isActive) {
                             animJob.cancel()
-                            scope.launch { progress.snapTo(0f) }
+                            scope.launch {
+                                progress.snapTo(0f)
+                                fillAlpha.snapTo(0.2f)
+                            }
                         }
                     }
                 },
@@ -79,7 +99,7 @@ internal fun StartStopButton(
                 modifier = Modifier
                     .fillMaxHeight()
                     .fillMaxWidth(fraction = progress.value)
-                    .background(NeonRed.copy(alpha = 0.2f)),
+                    .background(NeonRed.copy(alpha = fillAlpha.value)),
             )
             // Button text centered
             Box(
