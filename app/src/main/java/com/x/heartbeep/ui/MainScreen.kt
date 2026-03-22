@@ -13,6 +13,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,6 +25,7 @@ import com.x.heartbeep.ui.monitoring.MonitoringTab
 @Composable
 internal fun MainScreen(
     modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState,
     uiState: MainUiState,
     hasMonitoringPermissions: Boolean,
     hasLocationPermission: Boolean,
@@ -60,6 +62,7 @@ internal fun MainScreen(
             when (page) {
                 0 -> MonitoringTab(
                     modifier = Modifier.fillMaxSize(),
+                    snackbarHostState = snackbarHostState,
                     uiState = uiState,
                     hasMonitoringPermissions = hasMonitoringPermissions,
                     hasLocationPermission = hasLocationPermission,

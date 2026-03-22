@@ -8,14 +8,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,6 +39,7 @@ import kotlinx.coroutines.launch
 @Composable
 internal fun MonitoringTab(
     modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState,
     uiState: MainUiState,
     hasMonitoringPermissions: Boolean,
     hasLocationPermission: Boolean,
@@ -59,7 +57,6 @@ internal fun MonitoringTab(
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     var showGpsDialog by remember { mutableStateOf(false) }
-    val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
     if (showGpsDialog) {
@@ -172,36 +169,24 @@ internal fun MonitoringTab(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Box {
-                StartStopButton(
-                    isMonitoring = uiState.monitoringState.isMonitoring,
-                    enabled = hasMonitoringPermissions && uiState.bluetoothEnabled,
-                    onStart = {
-                        if (hasLocationPermission && !gpsEnabled) {
-                            showGpsDialog = true
-                        } else {
-                            onStartMonitoring()
-                        }
-                    },
-                    onStop = onStopMonitoring,
-                    onTapHint = {
-                        scope.launch {
-                            snackbarHostState.currentSnackbarData?.dismiss()
-                            snackbarHostState.showSnackbar("Hold to stop")
-                        }
-                    },
-                )
-                SnackbarHost(
-                    hostState = snackbarHostState,
-                    modifier = Modifier.align(Alignment.TopCenter),
-                ) { data ->
-                    Snackbar(
-                        snackbarData = data,
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-            }
+            StartStopButton(
+                isMonitoring = uiState.monitoringState.isMonitoring,
+                enabled = hasMonitoringPermissions && uiState.bluetoothEnabled,
+                onStart = {
+                    if (hasLocationPermission && !gpsEnabled) {
+                        showGpsDialog = true
+                    } else {
+                        onStartMonitoring()
+                    }
+                },
+                onStop = onStopMonitoring,
+                onTapHint = {
+                    scope.launch {
+                        snackbarHostState.currentSnackbarData?.dismiss()
+                        snackbarHostState.showSnackbar("Hold to stop")
+                    }
+                },
+            )
         }
     }
 }

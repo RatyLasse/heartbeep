@@ -25,6 +25,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import android.content.pm.PackageManager
 import android.location.LocationManager
@@ -132,12 +133,18 @@ class MainActivity : ComponentActivity() {
             HeartBeepTheme {
                 Scaffold(
                     containerColor = MaterialTheme.colorScheme.background,
-                    snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+                    snackbarHost = {
+                        SnackbarHost(
+                            hostState = snackbarHostState,
+                            modifier = Modifier.padding(bottom = 64.dp),
+                        )
+                    },
                 ) { padding ->
                     MainScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(padding),
+                        snackbarHostState = snackbarHostState,
                         uiState = uiState,
                         hasMonitoringPermissions = hasMonitoringPermissions,
                         hasLocationPermission = hasLocationPermission,
