@@ -14,12 +14,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import com.x.heartbeep.MainUiState
 import com.x.heartbeep.ui.NeonGreen
 import com.x.heartbeep.ui.NeonRed
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun MonitoringTab(
@@ -54,6 +59,8 @@ internal fun MonitoringTab(
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     var showGpsDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     if (showGpsDialog) {
         AlertDialog(
@@ -165,18 +172,36 @@ internal fun MonitoringTab(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            StartStopButton(
-                isMonitoring = uiState.monitoringState.isMonitoring,
-                enabled = hasMonitoringPermissions && uiState.bluetoothEnabled,
-                onStart = {
-                    if (hasLocationPermission && !gpsEnabled) {
-                        showGpsDialog = true
-                    } else {
-                        onStartMonitoring()
-                    }
-                },
-                onStop = onStopMonitoring,
-            )
+            Box {
+                StartStopButton(
+                    isMonitoring = uiState.monitoringState.isMonitoring,
+                    enabled = hasMonitoringPermissions && uiState.bluetoothEnabled,
+                    onStart = {
+                        if (hasLocationPermission && !gpsEnabled) {
+                            showGpsDialog = true
+                        } else {
+                            onStartMonitoring()
+                        }
+                    },
+                    onStop = onStopMonitoring,
+                    onTapHint = {
+                        scope.launch {
+                            snackbarHostState.currentSnackbarData?.dismiss()
+                            snackbarHostState.showSnackbar("Hold to stop")
+                        }
+                    },
+                )
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier.align(Alignment.TopCenter),
+                ) { data ->
+                    Snackbar(
+                        snackbarData = data,
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
         }
     }
 }

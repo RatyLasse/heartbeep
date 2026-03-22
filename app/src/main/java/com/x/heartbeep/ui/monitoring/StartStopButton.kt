@@ -45,6 +45,7 @@ internal fun StartStopButton(
     enabled: Boolean,
     onStart: () -> Unit,
     onStop: () -> Unit,
+    onTapHint: () -> Unit = {},
 ) {
     if (isMonitoring) {
         val stopShape = RoundedCornerShape(14.dp)
@@ -88,13 +89,14 @@ internal fun StartStopButton(
                             delay(CONFIRM_HOLD_MS)
                             onStop()
                         }
-                        waitForUpOrCancellation()
+                        val up = waitForUpOrCancellation()
                         if (!holdCompleted && animJob.isActive) {
                             animJob.cancel()
                             scope.launch {
                                 progress.snapTo(0f)
                                 fillAlpha.snapTo(0.2f)
                             }
+                            if (up != null) onTapHint()
                         }
                     }
                 },
