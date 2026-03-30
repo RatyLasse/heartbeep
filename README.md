@@ -1,35 +1,66 @@
 # HeartBeep
 
-Android app that connects to a Bluetooth LE heart rate monitor, displays live heart rate, and beeps when the heart rate crosses user-defined upper or lower thresholds. Developed and tested with a Polar H10, but should work with any device that implements the standard BLE Heart Rate Service profile.
+<p align="center">
+  <img src="mockups/banner1.png" alt="HeartBeep banner" width="744">
+</p>
+
+HeartBeep connects to a Bluetooth Low Energy heart rate monitor and helps you stay in your target zone with simple, immediate audio alerts.
+
+Built for training sessions where you do not want to keep checking your screen, HeartBeep shows your live heart rate, sounds an alert when you go above or below your chosen limits, and keeps monitoring in the background while your workout continues.
+
+Short description: Live heart rate alerts from your Bluetooth sensor. Stay in the zone.
+
+> The sections from "Why HeartBeep" through "Privacy" are the canonical user-facing app description and can be reused for the Play Store listing.
+
+## Why HeartBeep
+
+HeartBeep is designed to be fast and focused. Open the app, connect your sensor, choose your alert range, and start training. During a session, the app keeps you informed with clear feedback so you can adjust your effort without constantly looking at your phone.
 
 ## Features
 
-- **Live HR display** — connects to a BLE heart rate monitor and shows current heart rate in real time
-- **Live HR graph** — rolling 60-sample sparkline behind the HR readout; green when in bounds, red when out of bounds
-- **Upper limit alarm** — beeps (600 Hz tone) when HR exceeds the configured upper threshold
-- **Lower limit alarm** — beeps (400 Hz tone) when HR drops below an optional lower threshold
-- **HR-matched beep cadence** — beep interval matches your current heart rate (clamped to 333 ms – 2 s)
-- **TTS audio alerts** — spoken announcement when the sensor first connects or disconnects mid-session
-- **GPS distance tracking** — optional distance tracking during sessions with per-kilometre TTS announcements
-- **Pace tracking** — live pace (min/km) shown in session stats and stored with each session
-- **Session history** — completed sessions are persisted (Room) and browsable in a swipeable history tab; each card shows start time, duration, average HR, distance, pace, and a miniature HR graph with min/max labels
-- **Battery level** — shows connected device battery percentage
-- **Foreground monitoring service** — monitoring continues while the screen is off
-- **Settings persistence** — thresholds are saved with DataStore; last-connected device address is remembered for auto-reconnect
+- Connect to BLE heart rate monitors that support the standard Heart Rate Service profile
+- Live heart rate display with a rolling graph
+- Upper and lower heart rate alerts with adjustable limits
+- Beep cadence that follows your current heart rate
+- Voice alerts for sensor connection, disconnection, and each completed kilometer
+- Optional GPS distance tracking during sessions
+- Live pace tracking in min/km
+- Foreground monitoring so tracking continues with the screen off
+- Session history with duration, average heart rate, distance, pace, and heart rate graph
+- Export and import session history in TCX format
+- Battery level display plus saved thresholds and last connected device
 
-## Screens
+## Screenshots
 
-| Tab     | Contents                                                                                                                                                  |
-|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Monitor | Permission/BT status, device scan, min/max BPM stepper inputs, large live HR readout with sparkline graph, session stats (average HR, duration, distance) |
-| History | Scrollable list of past sessions with delete (undo supported), empty state when none exist; each card shows a 2×2 stats grid and miniature HR graph       |
+<p align="center">
+  <img src="store/screenshots/monitor-in-zone.jpg" alt="HeartBeep monitor screen while in the target zone" width="23%">
+  <img src="store/screenshots/monitor-alert.png" alt="HeartBeep monitor screen showing an out-of-zone alert" width="23%">
+  <img src="store/screenshots/monitor-gps-session.png" alt="HeartBeep monitor screen with GPS distance tracking during a session" width="23%">
+  <img src="store/screenshots/history-tab.png" alt="HeartBeep history screen with saved sessions and heart rate graphs" width="23%">
+</p>
 
-## Tech stack
+## Compatibility
+
+HeartBeep has been developed and tested with a Polar H10, but it should also work with other monitors that implement the standard BLE Heart Rate Service profile.
+
+## Use Cases
+
+- Zone-based endurance training
+- Run and ride pacing support
+- Heart rate cap alerts for easy sessions
+- Lower-bound alerts for recovery intervals
+- Outdoor sessions with optional distance and pace tracking
+
+## Privacy
+
+HeartBeep is designed for local use on your device. Session data and settings are stored on-device, and you can export or import your workout history whenever you want.
+
+## Tech Stack
 
 - Kotlin + Jetpack Compose (Material 3, no XML layouts)
-- Single-Activity MVVM — `ViewModel` + Kotlin `Flow` for UI state
-- Room (session history), DataStore (user preferences)
-- `AudioTrack` with sine-wave synthesis and amplitude envelopes for alarm tones; `TextToSpeech` for sensor connection and distance announcements
+- Single-activity MVVM with `ViewModel` and Kotlin `Flow`
+- Room for session history and DataStore for saved preferences
+- `AudioTrack` alarm tones plus `TextToSpeech` for spoken connection and distance alerts
 - Android BLE GATT for Heart Rate and Battery Service profiles
 - Foreground service with `FOREGROUND_SERVICE_CONNECTED_DEVICE` and optional `FOREGROUND_SERVICE_LOCATION`
 - Min SDK 31 (Android 12), Target SDK 35
@@ -40,15 +71,15 @@ Android app that connects to a Bluetooth LE heart rate monitor, displays live he
 export JAVA_HOME="$HOME/.local/opt/jdk-17"
 export ANDROID_SDK_ROOT="$HOME/Android/Sdk"
 
-./gradlew testDebugUnitTest      # run unit tests
-./gradlew assembleDebug          # build debug APK
+./gradlew testDebugUnitTest
+./gradlew assembleDebug
 ```
 
-APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
+The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
-## Device testing
+## Device Testing
 
-BLE passthrough on the Android emulator is unreliable, so test on a real Android 12+ device with a physical heart rate monitor. The app has been validated with a Polar H10; any device implementing the standard BLE Heart Rate Service profile should work. Install via ADB:
+BLE passthrough on the Android emulator is unreliable, so test on a real Android 12+ device with a physical heart rate monitor. Install via ADB:
 
 ```bash
 adb install app/build/outputs/apk/debug/app-debug.apk
