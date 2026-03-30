@@ -16,10 +16,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.FileDownload
-import androidx.compose.material.icons.outlined.FileUpload
+import com.x.heartbeep.ui.FileDownloadIcon
+import com.x.heartbeep.ui.FileUploadIcon
+import com.x.heartbeep.ui.HistoryIcon
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -62,7 +62,7 @@ internal fun HistoryTab(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Icon(
-                    imageVector = Icons.Filled.History,
+                    imageVector = HistoryIcon,
                     contentDescription = null,
                     modifier = Modifier.size(48.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
@@ -87,14 +87,14 @@ internal fun HistoryTab(
                 ) {
                     IconButton(onClick = onImport) {
                         Icon(
-                            imageVector = Icons.Outlined.FileUpload,
+                            imageVector = FileUploadIcon,
                             contentDescription = "Import sessions from TCX",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     IconButton(onClick = onExport) {
                         Icon(
-                            imageVector = Icons.Outlined.FileDownload,
+                            imageVector = FileDownloadIcon,
                             contentDescription = "Export sessions as TCX",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
