@@ -7,33 +7,21 @@ import org.junit.Test
 class CustomIconsTest {
 
     @Test
-    fun fileDownloadIconUsesSimpleBoldGeometry() {
+    fun historyIconStillExistsForEmptyState() {
         val source = loadCustomIconsSource()
 
-        assertTrue(source.contains("""name = "HistoryExport""""))
-        assertTrue(source.contains("moveTo(5f, 18f)"))
-        assertTrue(source.contains("lineToRelative(-4f, 5f)"))
-        assertTrue(source.contains("horizontalLineToRelative(3f)"))
+        assertTrue(source.contains("""name = "History""""))
     }
 
     @Test
-    fun fileUploadIconUsesSimpleBoldGeometry() {
-        val source = loadCustomIconsSource()
-
-        assertTrue(source.contains("""name = "HistoryImport""""))
-        assertTrue(source.contains("moveTo(11f, 17f)"))
-        assertTrue(source.contains("lineToRelative(-4f, -5f)"))
-        assertTrue(source.contains("verticalLineTo(9f)"))
-    }
-
-    @Test
-    fun historyTabUsesHighContrastTintForImportAndExportIcons() {
+    fun historyTabUsesVisibleTextActionsForImportAndExport() {
         val source = loadHistoryTabSource()
 
-        assertTrue(source.contains("imageVector = FileUploadIcon"))
-        assertTrue(source.contains("imageVector = FileDownloadIcon"))
-        assertTrue(source.contains("tint = MaterialTheme.colorScheme.onSurface"))
-        assertTrue(source.contains("modifier = Modifier.size(20.dp)"))
+        assertTrue(source.contains("TextButton("))
+        assertTrue(source.contains("""text = "Import""""))
+        assertTrue(source.contains("""text = "Export""""))
+        assertTrue(source.contains("color = MaterialTheme.colorScheme.onSurface"))
+        assertTrue(source.contains("contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)"))
     }
 
     private fun loadCustomIconsSource(): String {
