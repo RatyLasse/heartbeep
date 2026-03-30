@@ -22,7 +22,6 @@ HeartBeep is designed to be fast and focused. Open the app, connect your sensor,
 - Beep cadence that follows your current heart rate
 - Voice alerts for sensor connection, disconnection, and each completed kilometer
 - Optional GPS distance tracking during sessions
-- Live pace tracking in min/km
 - Foreground monitoring so tracking continues with the screen off
 - Session history with duration, average heart rate, distance, pace, and heart rate graph
 - Export and import session history in TCX format
