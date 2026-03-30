@@ -89,14 +89,16 @@ internal fun HistoryTab(
                         Icon(
                             imageVector = FileUploadIcon,
                             contentDescription = "Import sessions from TCX",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(20.dp),
                         )
                     }
                     IconButton(onClick = onExport) {
                         Icon(
                             imageVector = FileDownloadIcon,
                             contentDescription = "Export sessions as TCX",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(20.dp),
                         )
                     }
                 }

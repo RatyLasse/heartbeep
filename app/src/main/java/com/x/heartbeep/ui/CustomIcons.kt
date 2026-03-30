@@ -42,75 +42,65 @@ val HistoryIcon: ImageVector by lazy {
     }.build()
 }
 
-/** Outlined FileDownload icon (from Material Design icons). */
+/** Bold export icon for history actions. */
 val FileDownloadIcon: ImageVector by lazy {
     ImageVector.Builder(
-        name = "Outlined.FileDownload",
+        name = "HistoryExport",
         defaultWidth = 24.dp,
         defaultHeight = 24.dp,
         viewportWidth = 24f,
         viewportHeight = 24f,
     ).apply {
         path {
-            moveTo(18f, 15f)
-            verticalLineToRelative(3f)
-            horizontalLineTo(6f)
-            verticalLineToRelative(-3f)
-            horizontalLineTo(4f)
-            verticalLineToRelative(3f)
-            curveToRelative(0f, 1.1f, 0.9f, 2f, 2f, 2f)
-            horizontalLineToRelative(12f)
-            curveToRelative(1.1f, 0f, 2f, -0.9f, 2f, -2f)
-            verticalLineToRelative(-3f)
-            horizontalLineTo(18f)
+            moveTo(5f, 18f)
+            horizontalLineToRelative(14f)
+            verticalLineToRelative(2f)
+            horizontalLineTo(5f)
             close()
-            moveTo(17f, 11f)
-            lineToRelative(-1.41f, -1.41f)
-            lineTo(13f, 12.17f)
-            verticalLineTo(4f)
-            horizontalLineToRelative(-2f)
-            verticalLineToRelative(8.17f)
-            lineTo(8.41f, 9.59f)
-            lineTo(7f, 11f)
-            lineToRelative(5f, 5f)
-            lineToRelative(5f, -5f)
+            moveTo(11f, 4f)
+            horizontalLineToRelative(2f)
+            verticalLineToRelative(8f)
+            horizontalLineToRelative(3f)
+            lineToRelative(-4f, 5f)
+            lineToRelative(-4f, -5f)
+            horizontalLineToRelative(3f)
+            close()
+            moveTo(9f, 20f)
+            horizontalLineToRelative(6f)
+            verticalLineToRelative(1f)
+            horizontalLineTo(9f)
             close()
         }
     }.build()
 }
 
-/** Outlined FileUpload icon (from Material Design icons). */
+/** Bold import icon for history actions. */
 val FileUploadIcon: ImageVector by lazy {
     ImageVector.Builder(
-        name = "Outlined.FileUpload",
+        name = "HistoryImport",
         defaultWidth = 24.dp,
         defaultHeight = 24.dp,
         viewportWidth = 24f,
         viewportHeight = 24f,
     ).apply {
         path {
-            moveTo(18f, 15f)
-            verticalLineToRelative(3f)
-            horizontalLineTo(6f)
-            verticalLineToRelative(-3f)
-            horizontalLineTo(4f)
-            verticalLineToRelative(3f)
-            curveToRelative(0f, 1.1f, 0.9f, 2f, 2f, 2f)
-            horizontalLineToRelative(12f)
-            curveToRelative(1.1f, 0f, 2f, -0.9f, 2f, -2f)
-            verticalLineToRelative(-3f)
-            horizontalLineTo(18f)
+            moveTo(5f, 18f)
+            horizontalLineToRelative(14f)
+            verticalLineToRelative(2f)
+            horizontalLineTo(5f)
             close()
-            moveTo(7f, 9f)
-            lineToRelative(1.41f, 1.41f)
-            lineTo(11f, 7.83f)
-            verticalLineTo(16f)
+            moveTo(11f, 17f)
             horizontalLineToRelative(2f)
-            verticalLineTo(7.83f)
-            lineToRelative(2.59f, 2.58f)
-            lineTo(17f, 9f)
-            lineToRelative(-5f, -5f)
-            lineToRelative(-5f, 5f)
+            verticalLineTo(9f)
+            horizontalLineToRelative(3f)
+            lineToRelative(-4f, -5f)
+            lineToRelative(-4f, 5f)
+            horizontalLineToRelative(3f)
+            close()
+            moveTo(9f, 20f)
+            horizontalLineToRelative(6f)
+            verticalLineToRelative(1f)
+            horizontalLineTo(9f)
             close()
         }
     }.build()
