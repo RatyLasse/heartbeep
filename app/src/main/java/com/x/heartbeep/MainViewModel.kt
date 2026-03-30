@@ -304,25 +304,43 @@ class MainViewModel(
         context.startService(MonitoringService.stopIntent(context))
     }
 
-    fun exportSessionsTcxContent(): String? {
+    fun hasExportableData(): Boolean = _uiState.value.sessionHistory.isNotEmpty()
+
+    fun exportSessionsToUri(uri: android.net.Uri) {
         val sessions = _uiState.value.sessionHistory
-        if (sessions.isEmpty()) return null
-        return buildTcx(sessions)
+        if (sessions.isEmpty()) return
+        val context = getApplication<Application>()
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching {
+                val tcx = buildTcx(sessions)
+                context.contentResolver.openOutputStream(uri)?.use { it.write(tcx.toByteArray()) }
+            }.onFailure {
+                _uiState.update { state -> state.copy(message = "Export failed.") }
+            }
+        }
     }
 
-    fun importSessionsFromTcx(tcx: String) {
-        val sessions = parseTcx(tcx)
-        if (sessions.isEmpty()) {
-            _uiState.update { it.copy(message = "No sessions found in file.") }
-            return
-        }
-        val existingStartTimes = _uiState.value.sessionHistory.map { it.startTimeMs }.toSet()
-        val newSessions = sessions.filter { it.startTimeMs !in existingStartTimes }
-        if (newSessions.isEmpty()) {
-            _uiState.update { it.copy(message = "All sessions already exist.") }
-            return
-        }
-        viewModelScope.launch {
+    fun importSessionsFromUri(uri: android.net.Uri) {
+        val context = getApplication<Application>()
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val tcx = runCatching {
+                context.contentResolver.openInputStream(uri)?.use { it.bufferedReader().readText() }
+            }.getOrNull()
+            if (tcx.isNullOrBlank()) {
+                _uiState.update { it.copy(message = "Could not read file.") }
+                return@launch
+            }
+            val sessions = runCatching { parseTcx(tcx) }.getOrNull()
+            if (sessions.isNullOrEmpty()) {
+                _uiState.update { it.copy(message = "No sessions found in file.") }
+                return@launch
+            }
+            val existingStartTimes = _uiState.value.sessionHistory.map { it.startTimeMs }.toSet()
+            val newSessions = sessions.filter { it.startTimeMs !in existingStartTimes }
+            if (newSessions.isEmpty()) {
+                _uiState.update { it.copy(message = "All sessions already exist.") }
+                return@launch
+            }
             for (session in newSessions) {
                 sessionHistoryRepository.saveSession(session)
             }

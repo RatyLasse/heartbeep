@@ -82,21 +82,13 @@ class MainActivity : ComponentActivity() {
             val exportLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.CreateDocument("application/vnd.garmin.tcx+xml"),
             ) { uri ->
-                if (uri != null) {
-                    val tcx = viewModel.exportSessionsTcxContent() ?: return@rememberLauncherForActivityResult
-                    contentResolver.openOutputStream(uri)?.use { it.write(tcx.toByteArray()) }
-                }
+                if (uri != null) viewModel.exportSessionsToUri(uri)
             }
 
             val importLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.OpenDocument(),
             ) { uri ->
-                if (uri != null) {
-                    val tcx = contentResolver.openInputStream(uri)?.use {
-                        it.bufferedReader().readText()
-                    } ?: return@rememberLauncherForActivityResult
-                    viewModel.importSessionsFromTcx(tcx)
-                }
+                if (uri != null) viewModel.importSessionsFromUri(uri)
             }
 
             LaunchedEffect(uiState.monitoringState.isMonitoring) {
@@ -185,7 +177,7 @@ class MainActivity : ComponentActivity() {
                         onStopMonitoring = viewModel::stopMonitoring,
                         onDeleteSession = viewModel::requestDeleteSession,
                         onExportSessions = {
-                            if (viewModel.exportSessionsTcxContent() != null) {
+                            if (viewModel.hasExportableData()) {
                                 exportLauncher.launch("heartbeep-sessions.tcx")
                             }
                         },
