@@ -10,7 +10,7 @@
 - When fixing a bug or regression, add or update an automated test that fails before the fix and passes after it.
 - When changing monitoring/session state behavior, avoid duplicating state-reset logic across files; prefer shared helpers or other single-source-of-truth logic.
 - After each completed app change, run the relevant automated tests, at minimum `./gradlew testDebugUnitTest`.
-- After each completed app change, rebuild and install the app if the user's phone is connected over ADB.
+- After each completed app change, build the **release** APK (`./gradlew assembleRelease`) and install it on the user's phone if connected over ADB. Prefer release over debug for on-device testing — it is smaller, faster, and closer to what ships.
 - When an item from `IDEAS.txt` has been implemented, remove that item from `IDEAS.txt`.
 - When updating any dependency version in `build.gradle.kts` or `app/build.gradle.kts`, regenerate the lockfile immediately after with `./gradlew :app:dependencies --write-locks` and include the updated `app/gradle.lockfile` in the same commit.
 - Never add `androidx.compose.material:material-icons-extended` as a dependency — it bundles ~18,000 icons and bloats the APK by 60+ MB. Instead, define any non-core icons as custom `ImageVector` constants in `ui/CustomIcons.kt`. Only `material-icons-core` (which contains a small default set) should be used as a dependency.
