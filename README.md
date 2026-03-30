@@ -1,18 +1,18 @@
-# HeartBeep
+# Heartbeep
 
 <p align="center">
-  <img src="mockups/banner2.png" alt="HeartBeep banner" width="744">
+  <img src="mockups/banner2.png" alt="Heartbeep banner" width="744">
 </p>
 
-HeartBeep connects to a Bluetooth Low Energy heart rate monitor and helps you stay in your target zone with simple, immediate audio alerts.
+Heartbeep connects to a Bluetooth Low Energy heart rate monitor and helps you stay in your target zone with simple, immediate audio alerts.
 
-Built for training sessions where you do not want to keep checking your screen, HeartBeep shows your live heart rate, sounds an alert when you go above or below your chosen limits, and keeps monitoring in the background while your workout continues.
+Built for training sessions where you do not want to keep checking your screen, Heartbeep shows your live heart rate, sounds an alert when you go above or below your chosen limits, and keeps monitoring in the background while your workout continues.
 
-Demo video: [HeartBeep on YouTube Shorts](https://youtube.com/shorts/JAZva0w-2GI)
+Demo video: [Heartbeep on YouTube Shorts](https://youtube.com/shorts/JAZva0w-2GI)
 
-## Why HeartBeep
+## Why Heartbeep
 
-HeartBeep is designed to be fast and focused. Open the app, connect your sensor, choose your alert range, and start training. During a session, the app keeps you informed with clear feedback so you can adjust your effort without constantly looking at your phone.
+Heartbeep is designed to be fast and focused. Open the app, connect your sensor, choose your alert range, and start training. During a session, the app keeps you informed with clear feedback so you can adjust your effort without constantly looking at your phone.
 
 ## Features
 
@@ -30,14 +30,14 @@ HeartBeep is designed to be fast and focused. Open the app, connect your sensor,
 ## Screenshots
 
 <p align="center">
-  <img src="store/screenshots/monitor-gps-session.png" alt="HeartBeep monitor screen with previous session statistics" width="23%">
-  <img src="store/screenshots/monitor-alert.png" alt="HeartBeep monitor screen showing an out-of-zone alert" width="23%">
-  <img src="store/screenshots/history-tab.png" alt="HeartBeep history screen with saved sessions and heart rate graphs" width="23%">
+  <img src="store/screenshots/monitor-gps-session.png" alt="Heartbeep monitor screen with previous session statistics" width="23%">
+  <img src="store/screenshots/monitor-alert.png" alt="Heartbeep monitor screen showing an out-of-zone alert" width="23%">
+  <img src="store/screenshots/history-tab.png" alt="Heartbeep history screen with saved sessions and heart rate graphs" width="23%">
 </p>
 
 ## Compatibility
 
-HeartBeep has been developed and tested with a Polar H10, but it should also work with other monitors that implement the standard BLE Heart Rate Service profile.
+Heartbeep has been developed and tested with a Polar H10, but it should also work with other monitors that implement the standard BLE Heart Rate Service profile.
 
 ## Use Cases
 
@@ -49,7 +49,7 @@ HeartBeep has been developed and tested with a Polar H10, but it should also wor
 
 ## Privacy
 
-HeartBeep is designed for local use on your device. Session data and settings are stored on-device, and you can export or import your workout history whenever you want.
+Heartbeep is designed for local use on your device. Session data and settings are stored on-device, and you can export or import your workout history whenever you want.
 
 ## Tech Stack
 
