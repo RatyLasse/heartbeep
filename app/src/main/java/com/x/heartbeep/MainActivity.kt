@@ -1,7 +1,6 @@
 package com.x.heartbeep
 
 import android.Manifest
-import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -78,6 +77,26 @@ class MainActivity : ComponentActivity() {
             ) {
                 systemStateVersion += 1
                 viewModel.refreshBluetoothState()
+            }
+
+            val exportLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.CreateDocument("application/vnd.garmin.tcx+xml"),
+            ) { uri ->
+                if (uri != null) {
+                    val tcx = viewModel.exportSessionsTcxContent() ?: return@rememberLauncherForActivityResult
+                    contentResolver.openOutputStream(uri)?.use { it.write(tcx.toByteArray()) }
+                }
+            }
+
+            val importLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.OpenDocument(),
+            ) { uri ->
+                if (uri != null) {
+                    val tcx = contentResolver.openInputStream(uri)?.use {
+                        it.bufferedReader().readText()
+                    } ?: return@rememberLauncherForActivityResult
+                    viewModel.importSessionsFromTcx(tcx)
+                }
             }
 
             LaunchedEffect(uiState.monitoringState.isMonitoring) {
@@ -166,9 +185,12 @@ class MainActivity : ComponentActivity() {
                         onStopMonitoring = viewModel::stopMonitoring,
                         onDeleteSession = viewModel::requestDeleteSession,
                         onExportSessions = {
-                            viewModel.exportSessionsTcxIntent()?.let { intent ->
-                                startActivity(Intent.createChooser(intent, "Export Sessions"))
+                            if (viewModel.exportSessionsTcxContent() != null) {
+                                exportLauncher.launch("heartbeep-sessions.tcx")
                             }
+                        },
+                        onImportSessions = {
+                            importLauncher.launch(arrayOf("*/*"))
                         },
                     )
                 }

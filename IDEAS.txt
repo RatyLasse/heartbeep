@@ -1,9 +1,7 @@
-- Add history import functionality
 - Ask AI for further dev ideas and implement the best.
 - Take screenshots of the app to store/screenshots, add them to README and use in Play store. [MANUAL: requires phone connected via ADB]
 - Publish on Google Play. [MANUAL: requires Play Console access]
 - Add optional support the dev in-app purchase or paywall exercise history (payment only visible on that tab).
 - Create feature graphic (1024x500 banner, required for Play Store listing). [MANUAL: AI-generated quality is insufficient for production use]
 - Explore simpler app icon designs. Current icon looks great but may be too detailed/small for Android launcher icon sizes. Try bolder, more minimal vector graphics that read well at small scales while keeping the aesthetic.
-- data export: save instead of share
 - stop: button should say to hold so user does not need to fail before learning correct usage

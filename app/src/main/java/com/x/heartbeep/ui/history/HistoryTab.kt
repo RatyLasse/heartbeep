@@ -18,7 +18,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +50,7 @@ internal fun HistoryTab(
     sessions: List<SessionRecord>,
     onDelete: (Long) -> Unit,
     onExport: () -> Unit,
+    onImport: () -> Unit,
 ) {
     if (sessions.isEmpty()) {
         Box(
@@ -79,13 +81,20 @@ internal fun HistoryTab(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                Box(
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.CenterEnd,
+                    horizontalArrangement = Arrangement.End,
                 ) {
+                    IconButton(onClick = onImport) {
+                        Icon(
+                            imageVector = Icons.Outlined.FileUpload,
+                            contentDescription = "Import sessions from TCX",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     IconButton(onClick = onExport) {
                         Icon(
-                            imageVector = Icons.Outlined.Share,
+                            imageVector = Icons.Outlined.FileDownload,
                             contentDescription = "Export sessions as TCX",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

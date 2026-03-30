@@ -41,6 +41,7 @@ internal fun MainScreen(
     onStopMonitoring: () -> Unit,
     onDeleteSession: (Long) -> Unit,
     onExportSessions: () -> Unit,
+    onImportSessions: () -> Unit,
 ) {
     val pagerState = rememberPagerState(pageCount = { 2 })
 
@@ -82,6 +83,7 @@ internal fun MainScreen(
                     sessions = uiState.sessionHistory.filter { it.id != uiState.pendingDeleteId },
                     onDelete = onDeleteSession,
                     onExport = onExportSessions,
+                    onImport = onImportSessions,
                 )
             }
         }

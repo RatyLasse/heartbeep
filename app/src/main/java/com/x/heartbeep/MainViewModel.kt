@@ -4,17 +4,14 @@ import android.app.Application
 import android.bluetooth.BluetoothAdapter
 import android.content.Intent
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import com.x.heartbeep.data.BleDeviceCandidate
 import com.x.heartbeep.data.BleHeartRateRepository
 import com.x.heartbeep.data.SessionHistoryRepository
 import com.x.heartbeep.data.SessionRecord
+import com.x.heartbeep.data.buildTcx
+import com.x.heartbeep.data.parseTcx
 import com.x.heartbeep.data.ThresholdRepository
 import com.x.heartbeep.monitoring.HeartRateConnectionManager
 import com.x.heartbeep.monitoring.MonitoringController
@@ -307,64 +304,29 @@ class MainViewModel(
         context.startService(MonitoringService.stopIntent(context))
     }
 
-    fun exportSessionsTcxIntent(): Intent? {
+    fun exportSessionsTcxContent(): String? {
         val sessions = _uiState.value.sessionHistory
         if (sessions.isEmpty()) return null
+        return buildTcx(sessions)
+    }
 
-        val context = getApplication<Application>()
-        val tcxDateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
-            timeZone = java.util.TimeZone.getTimeZone("UTC")
+    fun importSessionsFromTcx(tcx: String) {
+        val sessions = parseTcx(tcx)
+        if (sessions.isEmpty()) {
+            _uiState.update { it.copy(message = "No sessions found in file.") }
+            return
         }
-
-        val tcx = buildString {
-            appendLine("""<?xml version="1.0" encoding="UTF-8"?>""")
-            appendLine("""<TrainingCenterDatabase xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2">""")
-            appendLine("  <Activities>")
-            for (s in sessions) {
-                val startTime = tcxDateFormat.format(Date(s.startTimeMs))
-                appendLine("""    <Activity Sport="Other">""")
-                appendLine("      <Id>$startTime</Id>")
-                appendLine("""      <Lap StartTime="$startTime">""")
-                appendLine("        <TotalTimeSeconds>${s.durationSeconds}</TotalTimeSeconds>")
-                appendLine("        <DistanceMeters>${s.distanceMeters ?: 0.0}</DistanceMeters>")
-                appendLine("        <Calories>0</Calories>")
-                appendLine("        <Intensity>Active</Intensity>")
-                appendLine("        <TriggerMethod>Manual</TriggerMethod>")
-                val samples = s.hrHistoryList()
-                if (samples.isNotEmpty()) {
-                    val intervalMs = (s.durationSeconds * 1000.0 / samples.size).toLong()
-                    appendLine("        <Track>")
-                    for ((i, bpm) in samples.withIndex()) {
-                        val time = tcxDateFormat.format(Date(s.startTimeMs + i * intervalMs))
-                        appendLine("          <Trackpoint>")
-                        appendLine("            <Time>$time</Time>")
-                        appendLine("            <HeartRateBpm><Value>$bpm</Value></HeartRateBpm>")
-                        appendLine("          </Trackpoint>")
-                    }
-                    appendLine("        </Track>")
-                }
-                if (s.averageHr != null) {
-                    appendLine("        <AverageHeartRateBpm><Value>${s.averageHr}</Value></AverageHeartRateBpm>")
-                }
-                val maxHr = samples.maxOrNull()
-                if (maxHr != null) {
-                    appendLine("        <MaximumHeartRateBpm><Value>$maxHr</Value></MaximumHeartRateBpm>")
-                }
-                appendLine("      </Lap>")
-                appendLine("    </Activity>")
+        val existingStartTimes = _uiState.value.sessionHistory.map { it.startTimeMs }.toSet()
+        val newSessions = sessions.filter { it.startTimeMs !in existingStartTimes }
+        if (newSessions.isEmpty()) {
+            _uiState.update { it.copy(message = "All sessions already exist.") }
+            return
+        }
+        viewModelScope.launch {
+            for (session in newSessions) {
+                sessionHistoryRepository.saveSession(session)
             }
-            appendLine("  </Activities>")
-            appendLine("</TrainingCenterDatabase>")
-        }
-
-        val file = File(context.cacheDir, "heartbeep-sessions.tcx")
-        file.writeText(tcx)
-
-        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-        return Intent(Intent.ACTION_SEND).apply {
-            type = "application/vnd.garmin.tcx+xml"
-            putExtra(Intent.EXTRA_STREAM, uri)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            _uiState.update { it.copy(message = "Imported ${newSessions.size} session(s).") }
         }
     }
 
