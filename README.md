@@ -1,16 +1,14 @@
 # HeartBeep
 
 <p align="center">
-  <img src="mockups/banner1.png" alt="HeartBeep banner" width="744">
+  <img src="mockups/banner2.png" alt="HeartBeep banner" width="744">
 </p>
 
 HeartBeep connects to a Bluetooth Low Energy heart rate monitor and helps you stay in your target zone with simple, immediate audio alerts.
 
 Built for training sessions where you do not want to keep checking your screen, HeartBeep shows your live heart rate, sounds an alert when you go above or below your chosen limits, and keeps monitoring in the background while your workout continues.
 
-Short description: Live heart rate alerts from your Bluetooth sensor. Stay in the zone.
-
-> The sections from "Why HeartBeep" through "Privacy" are the canonical user-facing app description and can be reused for the Play Store listing.
+Demo video: [HeartBeep on YouTube Shorts](https://youtube.com/shorts/JAZva0w-2GI)
 
 ## Why HeartBeep
 
@@ -33,9 +31,8 @@ HeartBeep is designed to be fast and focused. Open the app, connect your sensor,
 ## Screenshots
 
 <p align="center">
-  <img src="store/screenshots/monitor-in-zone.jpg" alt="HeartBeep monitor screen while in the target zone" width="23%">
+  <img src="store/screenshots/monitor-gps-session.png" alt="HeartBeep monitor screen with previous session statistics" width="23%">
   <img src="store/screenshots/monitor-alert.png" alt="HeartBeep monitor screen showing an out-of-zone alert" width="23%">
-  <img src="store/screenshots/monitor-gps-session.png" alt="HeartBeep monitor screen with GPS distance tracking during a session" width="23%">
   <img src="store/screenshots/history-tab.png" alt="HeartBeep history screen with saved sessions and heart rate graphs" width="23%">
 </p>
 
