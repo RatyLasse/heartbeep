@@ -45,27 +45,35 @@ val HistoryIcon: ImageVector by lazy {
 /** Outlined FileDownload icon (from Material Design icons). */
 val FileDownloadIcon: ImageVector by lazy {
     ImageVector.Builder(
-        name = "FileDownload",
+        name = "Outlined.FileDownload",
         defaultWidth = 24.dp,
         defaultHeight = 24.dp,
         viewportWidth = 24f,
         viewportHeight = 24f,
     ).apply {
         path {
-            moveTo(19f, 9f)
-            horizontalLineToRelative(-4f)
-            verticalLineTo(3f)
-            horizontalLineTo(9f)
-            verticalLineToRelative(6f)
-            horizontalLineTo(5f)
-            lineToRelative(7f, 7f)
-            lineToRelative(7f, -7f)
+            moveTo(18f, 15f)
+            verticalLineToRelative(3f)
+            horizontalLineTo(6f)
+            verticalLineToRelative(-3f)
+            horizontalLineTo(4f)
+            verticalLineToRelative(3f)
+            curveToRelative(0f, 1.1f, 0.9f, 2f, 2f, 2f)
+            horizontalLineToRelative(12f)
+            curveToRelative(1.1f, 0f, 2f, -0.9f, 2f, -2f)
+            verticalLineToRelative(-3f)
+            horizontalLineTo(18f)
             close()
-            moveTo(5f, 18f)
-            verticalLineToRelative(2f)
-            horizontalLineToRelative(14f)
-            verticalLineToRelative(-2f)
-            horizontalLineTo(5f)
+            moveTo(17f, 11f)
+            lineToRelative(-1.41f, -1.41f)
+            lineTo(13f, 12.17f)
+            verticalLineTo(4f)
+            horizontalLineToRelative(-2f)
+            verticalLineToRelative(8.17f)
+            lineTo(8.41f, 9.59f)
+            lineTo(7f, 11f)
+            lineToRelative(5f, 5f)
+            lineToRelative(5f, -5f)
             close()
         }
     }.build()
@@ -74,27 +82,35 @@ val FileDownloadIcon: ImageVector by lazy {
 /** Outlined FileUpload icon (from Material Design icons). */
 val FileUploadIcon: ImageVector by lazy {
     ImageVector.Builder(
-        name = "FileUpload",
+        name = "Outlined.FileUpload",
         defaultWidth = 24.dp,
         defaultHeight = 24.dp,
         viewportWidth = 24f,
         viewportHeight = 24f,
     ).apply {
         path {
-            moveTo(9f, 16f)
-            horizontalLineToRelative(6f)
-            verticalLineToRelative(-6f)
-            horizontalLineToRelative(4f)
-            lineToRelative(-7f, -7f)
-            lineToRelative(-7f, 7f)
-            horizontalLineToRelative(4f)
-            verticalLineToRelative(6f)
+            moveTo(18f, 15f)
+            verticalLineToRelative(3f)
+            horizontalLineTo(6f)
+            verticalLineToRelative(-3f)
+            horizontalLineTo(4f)
+            verticalLineToRelative(3f)
+            curveToRelative(0f, 1.1f, 0.9f, 2f, 2f, 2f)
+            horizontalLineToRelative(12f)
+            curveToRelative(1.1f, 0f, 2f, -0.9f, 2f, -2f)
+            verticalLineToRelative(-3f)
+            horizontalLineTo(18f)
             close()
-            moveTo(5f, 18f)
-            horizontalLineToRelative(14f)
-            verticalLineToRelative(2f)
-            horizontalLineTo(5f)
-            verticalLineToRelative(-2f)
+            moveTo(7f, 9f)
+            lineToRelative(1.41f, 1.41f)
+            lineTo(11f, 7.83f)
+            verticalLineTo(16f)
+            horizontalLineToRelative(2f)
+            verticalLineTo(7.83f)
+            lineToRelative(2.59f, 2.58f)
+            lineTo(17f, 9f)
+            lineToRelative(-5f, -5f)
+            lineToRelative(-5f, 5f)
             close()
         }
     }.build()
