@@ -1,5 +1,5 @@
+- Fix bug: When hr limit is changed during a run, it may adjust the graphic, but the beep does not become audible when the new limit is exceeded. (e.g. start session with hr upper limit 165 --> set hr limit to 140 during session --> hr 160 does not produce beeps, but 166 does).
 - Ask AI for further dev ideas and implement the best.
-- Take screenshots of the app to store/screenshots, add them to README and use in Play store. [MANUAL: requires phone connected via ADB]
 - Publish on Google Play. [MANUAL: requires Play Console access]
 - Add optional support the dev in-app purchase or paywall exercise history (payment only visible on that tab).
 - Explore simpler app icon designs. Current icon looks great but may be too detailed/small for Android launcher icon sizes. Try bolder, more minimal vector graphics that read well at small scales while keeping the aesthetic.
