@@ -1,5 +1,8 @@
 - Fix bug: When hr limit is changed during a run, it may adjust the graphic, but the beep does not become audible when the new limit is exceeded. (e.g. start session with hr upper limit 165 --> set hr limit to 140 during session --> hr 160 does not produce beeps, but 166 does).
-- Fix UI when lots of devices are found (the list squishes the rest of the UI)
+- Fix UI when lots of devices are found (the list squishes the rest of the UI. Scroll/popup?)
+- Improve history view visibility of min and max values when max hr is at the end
+- Provide session details when clicking/holding a history card?
+- Consider if we are maybe saving too granular or bloated session data, bloating the export? Or keep as is?
 - Ask AI for further dev ideas and implement the best.
 - Publish on Google Play. [MANUAL: requires Play Console access]
 - Add optional support the dev in-app purchase or paywall exercise history (payment only visible on that tab).
